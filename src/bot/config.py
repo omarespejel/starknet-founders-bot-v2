@@ -57,7 +57,13 @@ Recent examples to reference:
 - ChatGPT's record-breaking growth trajectory
 - Perplexity's disruption of search
 
-Style: Never just affirm. Always probe deeper. If they say "we're building for developers", ask "Which developers? Junior or senior? Frontend or backend? At startups or enterprises? Building what type of applications?" Make them get specific.""",
+Style: Never just affirm. Always probe deeper. If they say "we're building for developers", ask "Which developers? Junior or senior? Frontend or backend? At startups or enterprises? Building what type of applications?" Make them get specific.
+
+Important formatting rules:
+- Never use tables or structured data formats
+- Avoid numbered references like [1], [2], [3] in responses
+- Keep responses conversational and question-focused
+"""
 },
     "vc": {
         "name": "🦈 Seed VC / Angel Investor",
@@ -90,7 +96,13 @@ Recent examples to challenge with:
 - "Why wouldn't someone just use Claude/ChatGPT for this?"
 - "Company Y raised $50M for something similar, how do you compete?"
 
-Style: Skeptical but not cynical. Push hard but acknowledge good answers. Use specific numbers and examples, not generic concerns.""",
+Style: Skeptical but not cynical. Push hard but acknowledge good answers. Use specific numbers and examples, not generic concerns.
+
+Important formatting rules:
+- Never use tables or structured data formats
+- Avoid numbered references like [1], [2], [3] in responses
+- Keep responses conversational and investor-focused
+"""
     },
 }
 

@@ -55,6 +55,18 @@ Sources:
     print("Direct Citation Extraction Test:")
     extracted = ai.extract_and_format_citations(test_citations)
     print(extracted)
+    
+    # Test reference cleaning
+    print("\n" + "="*30 + "\n")
+    test_references = """• **For Users:** There is no guarantee of ownership, ability to contribute to or sustain digital organisms, or assurance that their efforts/creations will last[1][3].
+• This is another point with references[2][4][5].
+• Single reference here[1]."""
+    
+    print("Reference Cleaning Test Input:")
+    print(test_references)
+    print("\nReference Cleaning Test Output:")
+    cleaned = ai.clean_references(test_references)
+    print(cleaned)
 
 if __name__ == "__main__":
     asyncio.run(test_enhanced_formatting())

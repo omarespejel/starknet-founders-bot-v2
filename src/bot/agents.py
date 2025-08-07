@@ -122,10 +122,29 @@ class AIAgent:
         
         return content
 
+    def clean_references(self, content: str) -> str:
+        """Remove numbered reference citations like [1], [2], [1][3] from content."""
+        # Remove single references like [1], [2], [3]
+        content = re.sub(r'\[(\d+)\]', '', content)
+        
+        # Remove multiple consecutive references like [1][2][3]
+        content = re.sub(r'(\[\d+\])+', '', content)
+        
+        # Clean up any double spaces that might result
+        content = re.sub(r'\s+', ' ', content)
+        
+        # Clean up spaces before punctuation
+        content = re.sub(r'\s+([.,!?])', r'\1', content)
+        
+        return content.strip()
+
     def format_response(self, content: str, agent_type: str) -> str:
         """Format AI response with HTML formatting for better reliability."""
         # Debug logging to monitor citation formats
         logger.debug(f"Raw content before citation parsing: {content[:500]}")
+        
+        # First clean any numbered references like [1], [2], [1][3]
+        content = self.clean_references(content)
         
         # Try Perplexity format first
         content = self.parse_perplexity_citations(content)
@@ -135,6 +154,9 @@ class AIAgent:
         
         # Convert markdown links to HTML (from citation parsing)
         content = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', content)
+        
+        # Final cleanup of any remaining references that might have been added
+        content = self.clean_references(content)
         
         # Log if citations were found and processed
         if '<a href=' in content:
