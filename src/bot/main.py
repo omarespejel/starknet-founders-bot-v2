@@ -1,6 +1,7 @@
 """Main bot application."""
 
 import logging
+import signal
 import sys
 
 from telegram import Update
@@ -58,6 +59,15 @@ def main() -> None:
 
     # Add error handler
     application.add_error_handler(error_handler)
+
+    # Add graceful shutdown
+    def signal_handler(signum, frame):
+        logger.info("Received shutdown signal, stopping bot...")
+        application.stop()
+        sys.exit(0)
+    
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
 
     # Start the bot
     logger.info("Starting bot...")
