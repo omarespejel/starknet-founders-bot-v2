@@ -220,7 +220,7 @@ class AIAgent:
             response = await self.client.chat.completions.create(
                 model=agent["model"],
                 messages=formatted_messages,
-                max_tokens=800,
+                max_tokens=500,  # Reduced from 800 to 500 for more concise responses
                 temperature=0.7,
             )
             logger.debug("Response received successfully")
