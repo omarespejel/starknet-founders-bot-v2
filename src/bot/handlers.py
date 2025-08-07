@@ -1,6 +1,7 @@
 """Telegram bot command handlers."""
 
 import logging
+import re
 from datetime import UTC, datetime
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -288,14 +289,16 @@ Switch advisors anytime with /pm or /vc
             try:
                 await update.message.reply_text(
                     ai_response,
-                    parse_mode=ParseMode.MARKDOWN,
+                    parse_mode=ParseMode.HTML,
                     disable_web_page_preview=True,
                 )
             except Exception as e:
-                # If markdown fails, try without formatting
-                logger.warning(f"Markdown parsing failed: {e}")
+                # If HTML fails, try without formatting
+                logger.warning(f"HTML parsing failed: {e}")
+                # Strip HTML tags for plain text fallback
+                plain_text = re.sub(r'<[^>]+>', '', ai_response)
                 await update.message.reply_text(
-                    ai_response.replace('*', '').replace('_', '').replace('`', ''),
+                    plain_text,
                     parse_mode=None,
                     disable_web_page_preview=True,
                 )

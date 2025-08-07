@@ -123,7 +123,7 @@ class AIAgent:
         return content
 
     def format_response(self, content: str, agent_type: str) -> str:
-        """Format AI response with proper markdown and citations."""
+        """Format AI response with HTML formatting for better reliability."""
         # Debug logging to monitor citation formats
         logger.debug(f"Raw content before citation parsing: {content[:500]}")
         
@@ -133,8 +133,11 @@ class AIAgent:
         # Then try standard citation format
         content = self.extract_and_format_citations(content)
         
+        # Convert markdown links to HTML (from citation parsing)
+        content = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', content)
+        
         # Log if citations were found and processed
-        if '[' in content and 'http' in content:
+        if '<a href=' in content:
             logger.debug("Citations detected and processed in response")
         
         # Split content into sections
@@ -152,7 +155,7 @@ class AIAgent:
             if line.endswith('?'):
                 question_count += 1
                 if question_count <= 7:  # First 5-7 questions get numbered
-                    formatted_lines.append(f"**{question_count}.** {line}")
+                    formatted_lines.append(f"<b>{question_count}.</b> {line}")
                 else:
                     formatted_lines.append(f"• {line}")
             # Format action items or key points
@@ -162,11 +165,11 @@ class AIAgent:
             elif any(framework in line for framework in ['RICE', 'Jobs-to-be-Done', 'Growth Loop', 'TAM', 'CAC', 'LTV', 'PMF']):
                 # Bold the framework names
                 for framework in ['RICE', 'Jobs-to-be-Done', 'Growth Loop', 'TAM', 'CAC', 'LTV', 'PMF']:
-                    line = line.replace(framework, f"**{framework}**")
+                    line = line.replace(framework, f"<b>{framework}</b>")
                 formatted_lines.append(line)
             # Format section headers (lines that are short and don't end with punctuation)
             elif len(line) < 50 and not line.endswith(('.', '!', '?', ':')):
-                formatted_lines.append(f"\n**{line}**")
+                formatted_lines.append(f"\n<b>{line}</b>")
             else:
                 formatted_lines.append(line)
         
@@ -176,9 +179,9 @@ class AIAgent:
         
         # Add action item section if not present
         if "next step" not in formatted_content.lower() and "action item" not in formatted_content.lower():
-            formatted_content += "\n\n**💡 Next Step:** Reflect on the above questions and share your thoughts on the most challenging one."
+            formatted_content += "\n\n<b>💡 Next Step:</b> Reflect on the above questions and share your thoughts on the most challenging one."
         
-        return f"{header_emoji} **Response:**\n\n{formatted_content}"
+        return f"{header_emoji} <b>Response:</b>\n\n{formatted_content}"
 
     async def get_response(
         self,
