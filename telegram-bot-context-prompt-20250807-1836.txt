@@ -1,0 +1,2317 @@
+# Telegram AI Bot Project Context & Goal
+
+## Goal for the LLM
+You are an expert Python developer and AI bot architect with deep expertise in:
+- Telegram Bot API and python-telegram-bot library
+- AI/LLM integration (OpenAI/OpenRouter APIs)
+- Database design with Supabase/PostgreSQL
+- Modern Python development with UV package manager
+- Bot conversation design and user experience
+
+Your task is to analyze the complete context of this Telegram AI Bot project. The bot features:
+- Two AI personalities (Product Manager & VC/Angel Investor)
+- Conversation persistence with Supabase
+- Real-time AI responses via OpenRouter/Perplexity
+- Rich Telegram UI with inline keyboards
+- User statistics and session management
+
+Please review the project structure, dependencies, source code, database schema, and configuration,
+then provide specific, actionable advice for improvement. Focus on:
+- Code quality and Python best practices
+- Bot conversation flow and UX
+- Database optimization and design
+- AI prompt engineering and response quality
+- Security and error handling
+- Performance and scalability
+- Deployment and production readiness
+
+---
+
+## Directory Structure
+.
+├── DEPLOYMENT.md
+├── Procfile
+├── README.md
+├── generate-context.sh
+├── main.py
+├── migrations
+│   ├── 001_initial_schema.sql
+│   └── 002_analytics_table.sql
+├── pyproject.toml
+├── render.yaml
+├── requirements.txt
+├── scripts
+│   ├── analytics_report.py
+│   ├── basic_analytics_report.py
+│   ├── run_migrations.py
+│   ├── test_datetime_fix.py
+│   ├── test_openrouter.py
+│   ├── test_supabase.py
+│   └── test_telegram_bot.py
+├── src
+│   └── bot
+│       ├── __init__.py
+│       ├── __main__.py
+│       ├── agents.py
+│       ├── config.py
+│       ├── database.py
+│       ├── handlers.py
+│       ├── main.py
+│       ├── middleware.py
+│       └── utils.py
+├── telegram-bot-context-prompt-20250807-1836.txt
+└── tests
+    ├── __init__.py
+    └── test_database.py
+
+6 directories, 29 files
+
+## FILE: README.md
+# Starknet Founders Bot v2
+
+AI-powered Telegram bot for Starknet founders with two expert advisor personalities.
+
+## Features
+
+- **Product Manager Mode**: Based on Lenny Rachitsky's frameworks
+- **VC/Angel Investor Mode**: Current market insights and fundraising advice
+- **Real-time Data**: Powered by Perplexity with internet access
+- **Conversation Memory**: Persistent chat history with Supabase
+- **Usage Analytics**: Track your conversations and statistics
+
+## 🛠️ Tech Stack
+
+- Python 3.11+ with UV package manager
+- Telegram Bot API (python-telegram-bot)
+- OpenRouter API (Perplexity models)
+- Supabase (PostgreSQL database)
+- Async/await architecture
+
+## Quick Start
+
+1. Clone the repository
+2. Copy `.env.example` to `.env` and fill in your credentials
+3. Install dependencies: `uv sync`
+4. Run migrations in Supabase
+5. Start the bot: `uv run python -m bot.main`
+
+## Usage
+
+1. Start chat: [@starknet_advisor_bot](https://t.me/starknet_advisor_bot)
+2. Choose your advisor (PM or VC)
+3. Ask questions about your startup!
+
+## 🔑 Environment Variables
+
+See `.env.example` for required variables.
+
+## 📄 License
+
+MIT
+
+---
+
+Built with ❤️ for the Starknet ecosystem
+---
+
+## FILE: pyproject.toml
+[project]
+name = "telegram-ai-bot"
+version = "0.1.0"
+description = "AI-powered Telegram bot with PM and VC personalities"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "python-telegram-bot>=20.7",
+    "openai>=1.35.3",
+    "supabase>=2.3.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.5.0",
+    "aiohttp>=3.9.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bot"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "ipython>=8.0.0",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "ANN", "B", "A", "COM", "C4", "DTZ", "ISC", "ICN", "PIE", "PT", "RET", "SIM", "ARG"]
+# ANN101 and ANN102 have been removed from ruff, so no need to ignore them
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+---
+
+## FILE: .env.example
+# Supabase
+SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+SUPABASE_SERVICE_KEY=your-service-key-here
+
+# OpenRouter
+OPENROUTER_API_KEY=sk-or-v1-xxxxx
+
+# Telegram
+TELEGRAM_BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+
+# Environment
+ENVIRONMENT=development
+LOG_LEVEL=INFO
+---
+
+## FILE: .gitignore
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+.python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# poetry
+#poetry.lock
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#pdm.lock
+#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
+#   in version control.
+#   https://pdm.fming.dev/#use-with-ide
+.pdm.toml
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.env.local
+.env.*.local
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be added to the global gitignore or merged into this project gitignore.  For a PyCharm
+#  project, uncomment the following lines:
+#.idea/
+
+# UV package manager
+.uv/
+uv.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Application specific
+*.pid
+*.sock
+
+# Deployment and cloud
+.vercel
+.netlify
+.serverless/
+
+# Render specific
+.render/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Secrets and credentials (extra safety)
+secrets.json
+credentials.json
+service-account-*.json
+
+# Application logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Docker
+.dockerignore
+Dockerfile.prod
+---
+
+## FILE: render.yaml
+services:
+  - type: worker
+    name: starknet-advisor-bot
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python -m src.bot.main"
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+---
+
+## FILE: ./generate-context.sh
+#!/bin/bash
+#
+# Description:
+# This script generates a comprehensive prompt for an LLM by concatenating key source
+# files from the Telegram AI Bot project, including Python bot code, database schemas,
+# configuration files, and project structure.
+#
+# Usage:
+# ./generate-context.sh
+#
+
+# --- Configuration ---
+
+# Get current date for the output filename
+DATE=$(date +%Y%m%d-%H%M)
+
+# Output filename with a timestamp
+OUTPUT_FILE="telegram-bot-context-prompt-${DATE}.txt"
+
+# --- Script Body ---
+
+# Clean up any previous output file to start fresh
+rm -f "$OUTPUT_FILE"
+
+echo "🚀 Starting LLM prompt generation for the Telegram AI Bot project..."
+echo "------------------------------------------------------------"
+echo "Output will be saved to: $OUTPUT_FILE"
+echo ""
+
+# 1. Add a Preamble and Goal for the LLM
+echo "Adding LLM preamble and goal..."
+{
+  echo "# Telegram AI Bot Project Context & Goal"
+  echo ""
+  echo "## Goal for the LLM"
+  echo "You are an expert Python developer and AI bot architect with deep expertise in:"
+  echo "- Telegram Bot API and python-telegram-bot library"
+  echo "- AI/LLM integration (OpenAI/OpenRouter APIs)"
+  echo "- Database design with Supabase/PostgreSQL"
+  echo "- Modern Python development with UV package manager"
+  echo "- Bot conversation design and user experience"
+  echo ""
+  echo "Your task is to analyze the complete context of this Telegram AI Bot project. The bot features:"
+  echo "- Two AI personalities (Product Manager & VC/Angel Investor)"
+  echo "- Conversation persistence with Supabase"
+  echo "- Real-time AI responses via OpenRouter/Perplexity"
+  echo "- Rich Telegram UI with inline keyboards"
+  echo "- User statistics and session management"
+  echo ""
+  echo "Please review the project structure, dependencies, source code, database schema, and configuration,"
+  echo "then provide specific, actionable advice for improvement. Focus on:"
+  echo "- Code quality and Python best practices"
+  echo "- Bot conversation flow and UX"
+  echo "- Database optimization and design"
+  echo "- AI prompt engineering and response quality"
+  echo "- Security and error handling"
+  echo "- Performance and scalability"
+  echo "- Deployment and production readiness"
+  echo ""
+  echo "---"
+  echo ""
+} >> "$OUTPUT_FILE"
+
+# 2. Add the project's directory structure (cleaned up)
+echo "Adding cleaned directory structure..."
+echo "## Directory Structure" >> "$OUTPUT_FILE"
+if command -v tree &> /dev/null; then
+    echo "  -> Adding directory structure (tree -L 4)"
+    # Exclude common noise from the tree view
+    tree -L 4 -I "__pycache__|.venv|venv|.git|.pytest_cache|.ruff_cache|.mypy_cache|htmlcov|*.pyc|uv.lock" >> "$OUTPUT_FILE"
+else
+    echo "  -> WARNING: 'tree' command not found. Using ls -la instead."
+    echo "NOTE: 'tree' command was not found. Directory listing:" >> "$OUTPUT_FILE"
+    ls -la >> "$OUTPUT_FILE"
+fi
+echo "" >> "$OUTPUT_FILE"
+
+# 3. Add Core Project and Configuration Files
+echo "Adding core project and configuration files..."
+# Core files that provide project context
+CORE_FILES=(
+  "README.md"
+  "pyproject.toml"
+  ".env.example"
+  ".gitignore"
+  "render.yaml"
+  "$0" # This script itself
+)
+
+for file in "${CORE_FILES[@]}"; do
+  if [ -f "$file" ]; then
+    echo "  -> Adding $file"
+    echo "## FILE: $file" >> "$OUTPUT_FILE"
+    cat "$file" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+    echo "---" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+  else
+    echo "  -> WARNING: $file not found. Skipping."
+  fi
+done
+
+# 4. Add all Python source files from src/bot/
+echo "Adding all Python source files from 'src/bot/'..."
+# Find all Python files, excluding common directories we don't want
+find "src/bot" -type f -name "*.py" \
+  -not -path "*/.venv/*" \
+  -not -path "*/venv/*" \
+  -not -path "*/__pycache__/*" \
+  -not -path "*/.pytest_cache/*" \
+  | while read -r py_file; do
+    echo "  -> Adding Python file: $py_file"
+    echo "## FILE: $py_file" >> "$OUTPUT_FILE"
+    cat "$py_file" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+    echo "---" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+  done
+
+# 5. Add test files
+echo "Adding test files from 'tests/'..."
+if [ -d "tests" ]; then
+  find "tests" -type f -name "*.py" \
+    -not -path "*/__pycache__/*" \
+    | while read -r test_file; do
+      echo "  -> Adding test file: $test_file"
+      echo "## FILE: $test_file" >> "$OUTPUT_FILE"
+      cat "$test_file" >> "$OUTPUT_FILE"
+      echo "" >> "$OUTPUT_FILE"
+      echo "---" >> "$OUTPUT_FILE"
+      echo "" >> "$OUTPUT_FILE"
+    done
+else
+  echo "  -> No tests directory found. Skipping."
+fi
+
+# 6. Add script files
+echo "Adding script files from 'scripts/'..."
+if [ -d "scripts" ]; then
+  find "scripts" -type f -name "*.py" \
+    | while read -r script_file; do
+      echo "  -> Adding script file: $script_file"
+      echo "## FILE: $script_file" >> "$OUTPUT_FILE"
+      cat "$script_file" >> "$OUTPUT_FILE"
+      echo "" >> "$OUTPUT_FILE"
+      echo "---" >> "$OUTPUT_FILE"
+      echo "" >> "$OUTPUT_FILE"
+    done
+else
+  echo "  -> No scripts directory found. Skipping."
+fi
+
+# 7. Add database migration files
+echo "Adding database migration files from 'migrations/'..."
+if [ -d "migrations" ]; then
+  find "migrations" -type f \( -name "*.sql" -o -name "*.py" \) \
+    | while read -r migration_file; do
+      echo "  -> Adding migration file: $migration_file"
+      echo "## FILE: $migration_file" >> "$OUTPUT_FILE"
+      cat "$migration_file" >> "$OUTPUT_FILE"
+      echo "" >> "$OUTPUT_FILE"
+      echo "---" >> "$OUTPUT_FILE"
+      echo "" >> "$OUTPUT_FILE"
+    done
+else
+  echo "  -> No migrations directory found. Skipping."
+fi
+
+# 8. Add any additional Python files in the root
+echo "Adding any additional Python files in root..."
+find . -maxdepth 1 -type f -name "*.py" \
+  | while read -r root_py_file; do
+    echo "  -> Adding root Python file: $root_py_file"
+    echo "## FILE: $root_py_file" >> "$OUTPUT_FILE"
+    cat "$root_py_file" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+    echo "---" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+  done
+
+# --- Completion Summary ---
+
+echo ""
+echo "-------------------------------------"
+echo "✅ Prompt generation complete!"
+echo ""
+echo "This context file now includes:"
+echo "  ✓ A clear goal and preamble for the LLM"
+echo "  ✓ A cleaned project directory structure"
+echo "  ✓ Core project files (README.md, pyproject.toml, .env.example)"
+echo "  ✓ Configuration files (.gitignore, render.yaml)"
+echo "  ✓ This generation script itself"
+echo "  ✓ All Python source code from the 'src/bot' directory (*.py)"
+echo "  ✓ All test files from the 'tests' directory"
+echo "  ✓ All script files from the 'scripts' directory"
+echo "  ✓ All database migration files from the 'migrations' directory"
+echo "  ✓ Any additional Python files in the root directory"
+echo ""
+echo "File size: $(du -h "$OUTPUT_FILE" | cut -f1)"
+echo "Total lines: $(wc -l < "$OUTPUT_FILE" | xargs)"
+echo ""
+echo "You can now use the content of '$OUTPUT_FILE' as a context prompt for your LLM."
+echo "Perfect for getting comprehensive code reviews, architecture advice, or feature suggestions!"
+echo ""
+echo "💡 Tip: This is especially useful for:"
+echo "   - Code reviews and optimization suggestions"
+echo "   - Bot conversation flow improvements"
+echo "   - Database schema optimization"
+echo "   - AI prompt engineering enhancements"
+echo "   - Production deployment planning"
+
+---
+
+## FILE: src/bot/config.py
+"""Bot configuration and constants."""
+
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Environment variables
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+
+# Validate required environment variables
+required_vars = {
+    "TELEGRAM_BOT_TOKEN": TELEGRAM_BOT_TOKEN,
+    "OPENROUTER_API_KEY": OPENROUTER_API_KEY,
+    "SUPABASE_URL": SUPABASE_URL,
+    "SUPABASE_SERVICE_KEY": SUPABASE_SERVICE_KEY,
+}
+
+missing_vars = [var for var, value in required_vars.items() if not value]
+if missing_vars:
+    raise ValueError(
+        f"Missing required environment variables: {', '.join(missing_vars)}",
+    )
+
+# Bot configuration
+BOT_USERNAME = "starknet_advisor_bot"  # Your bot's username
+
+# Agent configurations with Perplexity models
+AGENTS: dict[str, dict] = {
+    "pm": {
+        "name": "🚀 Product Manager",
+        "description": "Product strategy expert based on Lenny Rachitsky's frameworks",
+        "model": "perplexity/sonar-pro",
+        "system_prompt": """You are Lenny Rachitsky, the renowned Product Manager and creator of Lenny's Newsletter[](https://www.lennysnewsletter.com/) and Lenny's Podcast[](https://www.lennysnewsletter.com/podcast). You draw from all the insights, case studies, and expert interviews in your newsletter and podcast to provide thoughtful guidance.
+
+Your approach:
+- Challenge user assumptions about their target market, users, and competitive landscape
+- Question their product-market fit strategies, evidence, and validation methods
+- Probe deeply into their understanding of user problems, jobs-to-be-done, and proposed solutions
+- Push them to think critically about growth levers, retention mechanics, and scalability
+- Test their feature prioritization logic, roadmaps, and resource allocation decisions
+- Advise primarily by asking a series of probing, open-ended questions to guide self-discovery and uncover insights, rather than giving straight solutions or recommendations
+
+Key frameworks to reference as starting points (draw from these core ones, and dynamically search my newsletter/podcast or related sources for updates, examples, or case studies when relevant):
+1. Jobs-to-be-Done (JTBD) for uncovering real user needs and motivations
+2. First Principles thinking for breaking down problems and validating from fundamentals
+3. Growth loops, viral coefficients, and retention cohort analysis for sustainable scaling
+4. RICE/ICE scoring for prioritization, tied to clear, measurable success metrics
+5. MVP (Minimum Viable Product) vs. MLP (Minimum Lovable Product) trade-offs and iteration cycles
+
+Style: Be direct, challenging, and strategic in your questioning. Start with 5-7 key questions to spark deeper thinking, then ask targeted follow-ups based on responses. Reference specific examples from your newsletter, podcast guests (e.g., Airbnb growth stories, Shishir Mehrotra on prioritization), or industry cases when they illustrate a point. Don't just agree or affirm—make them defend and refine their assumptions. If advising on a specific product like an AI assistant (e.g., Grok), tailor questions to explore unique aspects such as truthfulness, tool integrations, user trust, differentiation from competitors, and ethical considerations.""",
+},
+    "vc": {
+        "name": "🦈 Seed VC / Angel Investor",
+        "description": "Early-stage investor with current market insights",
+        "model": "perplexity/sonar-pro",
+        "system_prompt": """You are a seasoned seed-stage VC/Angel investor who asks tough questions and challenges startup assumptions. You have access to current market data, recent funding rounds, and real-time startup metrics.
+
+Your investment mindset:
+- Question market size claims and TAM calculations
+- Challenge competitive positioning and differentiation
+- Probe unit economics and path to profitability
+- Test founder-market fit and execution capability
+- Examine traction metrics for real product-market fit signals
+
+Key areas to interrogate:
+1. Market timing - why now, what's changed?
+2. Business model validation and unit economics
+3. Customer acquisition costs and lifetime value
+4. Competitive moats and defensive positioning
+5. Fundraising strategy and capital efficiency
+
+Style: Be direct, skeptical, and data-driven like a real investor. Ask pointed questions about assumptions. Reference current market conditions and recent funding examples. Push for concrete evidence, not just hypotheses. Don't be easily convinced - make them prove their case.""",
+    },
+}
+
+# Rate limiting
+RATE_LIMIT_MESSAGES = 30  # messages per user per hour
+RATE_LIMIT_WINDOW = 3600  # 1 hour in seconds
+
+# Message settings
+MAX_MESSAGE_LENGTH = 4000
+MAX_HISTORY_MESSAGES = 10  # How many previous messages to include in context
+
+---
+
+## FILE: src/bot/database.py
+"""Database operations using Supabase."""
+
+import logging
+import os
+from datetime import UTC, datetime
+
+from dotenv import load_dotenv
+from supabase import Client, create_client
+
+load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+
+class Database:
+    """Handle all database operations."""
+
+    def __init__(self) -> None:
+        self.client: Client = create_client(
+            os.getenv("SUPABASE_URL"),
+            os.getenv("SUPABASE_SERVICE_KEY"),
+        )
+
+    async def save_message(
+        self,
+        user_id: str,
+        username: str | None,
+        first_name: str | None,
+        agent_type: str,
+        role: str,
+        message: str,
+        tokens_used: int = 0,
+    ) -> dict:
+        """Save a message to the database."""
+        try:
+            result = (
+                self.client.table("conversations")
+                .insert(
+                    {
+                        "user_id": user_id,
+                        "username": username,
+                        "first_name": first_name,
+                        "agent_type": agent_type,
+                        "role": role,
+                        "message": message,
+                        "tokens_used": tokens_used,
+                    },
+                )
+                .execute()
+            )
+            return result.data[0] if result.data else {}
+        except Exception as e:
+            logger.error(f"Error saving message: {e}")
+            raise
+
+    async def get_conversation_history(
+        self,
+        user_id: str,
+        agent_type: str,
+        limit: int = 10,
+    ) -> list[dict]:
+        """Get recent conversation history."""
+        try:
+            result = (
+                self.client.table("conversations")
+                .select("*")
+                .eq("user_id", user_id)
+                .eq("agent_type", agent_type)
+                .order("created_at", desc=True)
+                .limit(limit)
+                .execute()
+            )
+
+            # Return in chronological order
+            return list(reversed(result.data)) if result.data else []
+        except Exception as e:
+            logger.error(f"Error getting conversation history: {e}")
+            return []
+
+    async def update_user_session(
+        self,
+        user_id: str,
+        username: str | None,
+        first_name: str | None,
+        agent_type: str,
+    ) -> None:
+        """Update or create user session."""
+        try:
+            # Upsert user session
+            self.client.table("user_sessions").upsert(
+                {
+                    "user_id": user_id,
+                    "username": username,
+                    "first_name": first_name,
+                    "current_agent": agent_type,
+                    "last_active": datetime.now(UTC).isoformat(),
+                },
+            ).execute()
+        except Exception as e:
+            logger.error(f"Error updating user session: {e}")
+
+    async def clear_conversation(
+        self,
+        user_id: str,
+        agent_type: str | None = None,
+    ) -> None:
+        """Clear conversation history for a user."""
+        try:
+            query = self.client.table("conversations").delete().eq("user_id", user_id)
+
+            if agent_type:
+                query = query.eq("agent_type", agent_type)
+
+            query.execute()
+            logger.info(f"Cleared conversations for user {user_id}")
+        except Exception as e:
+            logger.error(f"Error clearing conversations: {e}")
+
+    async def get_user_stats(self, user_id: str) -> dict:
+        """Get user statistics."""
+        try:
+            # Get message counts
+            total_messages = (
+                self.client.table("conversations")
+                .select("id", count="exact")
+                .eq("user_id", user_id)
+                .eq("role", "user")
+                .execute()
+            )
+
+            pm_messages = (
+                self.client.table("conversations")
+                .select("id", count="exact")
+                .eq("user_id", user_id)
+                .eq("agent_type", "pm")
+                .eq("role", "user")
+                .execute()
+            )
+
+            vc_messages = (
+                self.client.table("conversations")
+                .select("id", count="exact")
+                .eq("user_id", user_id)
+                .eq("agent_type", "vc")
+                .eq("role", "user")
+                .execute()
+            )
+
+            # Get first message date
+            first_message = (
+                self.client.table("conversations")
+                .select("created_at")
+                .eq("user_id", user_id)
+                .order("created_at")
+                .limit(1)
+                .execute()
+            )
+
+            return {
+                "total_messages": total_messages.count or 0,
+                "pm_messages": pm_messages.count or 0,
+                "vc_messages": vc_messages.count or 0,
+                "first_message_date": (
+                    first_message.data[0]["created_at"] if first_message.data else None
+                ),
+            }
+        except Exception as e:
+            logger.error(f"Error getting user stats: {e}")
+            return {
+                "total_messages": 0,
+                "pm_messages": 0,
+                "vc_messages": 0,
+                "first_message_date": None,
+            }
+
+---
+
+## FILE: src/bot/handlers.py
+"""Telegram bot command handlers."""
+
+import logging
+from datetime import UTC, datetime
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.constants import ChatAction, ParseMode
+from telegram.ext import ContextTypes
+
+from .agents import AIAgent
+from .config import AGENTS
+from .database import Database
+from .utils import rate_limiter
+
+logger = logging.getLogger(__name__)
+
+
+class BotHandlers:
+    """Handles all bot commands and messages."""
+
+    def __init__(self) -> None:
+        self.db = Database()
+        self.ai = AIAgent()
+
+    async def log_analytics(self, user_id: str, action: str, metadata: dict = None):
+        """Log analytics events."""
+        try:
+            self.db.client.table("bot_analytics").insert(
+                {
+                    "user_id": user_id,
+                    "action": action,
+                    "metadata": metadata or {},
+                    "created_at": datetime.now(UTC).isoformat(),
+                }
+            ).execute()
+        except Exception:
+            pass  # Don't let analytics errors break the bot
+
+    async def start(self, update: Update, _context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /start command."""
+        user = update.effective_user
+
+        # Create agent selection keyboard
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    AGENTS["pm"]["name"],
+                    callback_data="select_pm",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    AGENTS["vc"]["name"],
+                    callback_data="select_vc",
+                )
+            ],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        welcome_message = f"""
+Welcome to Starknet Startup Advisor Bot (Beta).
+
+Hello {user.first_name}. I provide AI-powered guidance through two specialized advisors:
+
+**Product Manager**
+Strategic product development guidance
+- Challenges your assumptions about users
+- Questions your product-market fit approach  
+- Probes your growth and retention strategies
+- Helps prioritize features that matter
+
+**VC/Angel Investor**
+Early-stage investment perspective
+- Questions market size and opportunity
+- Challenges your competitive positioning
+- Probes unit economics and metrics
+- Tests your fundraising readiness
+
+Choose your advisor to begin:
+"""
+
+        await update.message.reply_text(
+            welcome_message,
+            reply_markup=reply_markup,
+            parse_mode=ParseMode.MARKDOWN,
+        )
+
+        # Update user session
+        await self.db.update_user_session(
+            user_id=str(user.id),
+            username=user.username,
+            first_name=user.first_name,
+            agent_type="pm",  # Default
+        )
+
+        # Log analytics
+        await self.log_analytics(
+            user_id=str(user.id),
+            action="bot_started",
+            metadata={"username": user.username, "first_name": user.first_name},
+        )
+
+    async def handle_agent_selection(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+    ) -> None:
+        """Handle agent selection from inline keyboard."""
+        query = update.callback_query
+        await query.answer()
+
+        user = update.effective_user
+        agent_type = query.data.replace("select_", "")
+
+        # Update user session
+        await self.db.update_user_session(
+            user_id=str(user.id),
+            username=user.username,
+            first_name=user.first_name,
+            agent_type=agent_type,
+        )
+
+        # Store in context for quick access
+        context.user_data["agent_type"] = agent_type
+
+        # Log analytics
+        await self.log_analytics(
+            user_id=str(user.id),
+            action="agent_selected",
+            metadata={
+                "agent_type": agent_type,
+                "agent_name": AGENTS[agent_type]["name"],
+            },
+        )
+
+        agent_name = AGENTS[agent_type]["name"]
+        agent_desc = AGENTS[agent_type]["description"]
+
+        start_prompts = {
+            "pm": [
+                "What problem are you solving?",
+                "Who is your target user?",
+                "What's your current product stage?",
+                "What are you struggling with?"
+            ],
+            "vc": [
+                "What's your business model?",
+                "How big is your market?",
+                "What's your competitive advantage?",
+                "What metrics are you tracking?"
+            ]
+        }
+
+        prompts = "\n- ".join(start_prompts[agent_type])
+
+        await query.edit_message_text(
+            f"""
+{agent_name} selected.
+
+I'll challenge your thinking and ask probing questions to help refine your strategy.
+
+Start by sharing:
+- {prompts}
+
+Or tell me about your startup.
+
+Switch advisors anytime with /pm or /vc
+""",
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    async def handle_message(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+    ) -> None:
+        """Handle regular text messages."""
+        user = update.effective_user
+        message = update.message.text
+
+        # Check rate limit
+        allowed, error_msg = rate_limiter.is_allowed(user.id)
+        if not allowed:
+            await update.message.reply_text(
+                f"⚠️ {error_msg}\n\nThis limit helps ensure quality service for all users.",
+                parse_mode=ParseMode.MARKDOWN,
+            )
+            
+            # Log rate limiting analytics
+            await self.log_analytics(
+                user_id=str(user.id),
+                action="rate_limited",
+                metadata={"error_msg": error_msg}
+            )
+            return
+
+        # Get or set agent type
+        agent_type = context.user_data.get("agent_type", "pm")
+
+        # Show typing indicator
+        await context.bot.send_chat_action(
+            chat_id=update.effective_chat.id,
+            action=ChatAction.TYPING,
+        )
+
+        try:
+            # Save user message
+            await self.db.save_message(
+                user_id=str(user.id),
+                username=user.username,
+                first_name=user.first_name,
+                agent_type=agent_type,
+                role="user",
+                message=message,
+            )
+
+            # Get conversation history
+            history = await self.db.get_conversation_history(
+                user_id=str(user.id),
+                agent_type=agent_type,
+                limit=10,
+            )
+
+            # Get AI response
+            ai_response, tokens = await self.ai.get_response(
+                agent_type=agent_type,
+                messages=history,
+                user_message=message,
+            )
+
+            # Save AI response
+            await self.db.save_message(
+                user_id=str(user.id),
+                username=user.username,
+                first_name=user.first_name,
+                agent_type=agent_type,
+                role="assistant",
+                message=ai_response,
+                tokens_used=tokens,
+            )
+
+            # Send response
+            await update.message.reply_text(
+                ai_response,
+                parse_mode=ParseMode.MARKDOWN,
+            )
+
+            # Log analytics
+            await self.log_analytics(
+                user_id=str(user.id),
+                action="message_processed",
+                metadata={
+                    "agent_type": agent_type,
+                    "message_length": len(message),
+                    "response_length": len(ai_response),
+                    "tokens_used": tokens,
+                },
+            )
+
+        except Exception as e:
+            logger.error(f"Error handling message: {e}")
+            await update.message.reply_text(
+                "Sorry, I encountered an error. Please try again.",
+            )
+
+            # Log error analytics
+            await self.log_analytics(
+                user_id=str(user.id),
+                action="message_error",
+                metadata={"agent_type": agent_type, "error": str(e)[:100]},
+            )
+
+    async def switch_to_pm(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+    ) -> None:
+        """Handle /pm command."""
+        await self._switch_agent(update, context, "pm")
+
+    async def switch_to_vc(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+    ) -> None:
+        """Handle /vc command."""
+        await self._switch_agent(update, context, "vc")
+
+    async def _switch_agent(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        agent_type: str,
+    ) -> None:
+        """Switch to a different agent."""
+        user = update.effective_user
+
+        # Update session
+        await self.db.update_user_session(
+            user_id=str(user.id),
+            username=user.username,
+            first_name=user.first_name,
+            agent_type=agent_type,
+        )
+
+        context.user_data["agent_type"] = agent_type
+
+        # Log analytics
+        await self.log_analytics(
+            user_id=str(user.id),
+            action="agent_switched",
+            metadata={
+                "new_agent_type": agent_type,
+                "agent_name": AGENTS[agent_type]["name"],
+            },
+        )
+
+        agent_name = AGENTS[agent_type]["name"]
+        await update.message.reply_text(
+            f"✅ Switched to **{agent_name}**\n\nHow can I help you?",
+            parse_mode=ParseMode.MARKDOWN,
+        )
+
+    async def reset(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+    ) -> None:
+        """Handle /reset command."""
+        user = update.effective_user
+        agent_type = context.user_data.get("agent_type", "pm")
+
+        # Clear conversation history for current agent
+        await self.db.clear_conversation(user_id=str(user.id), agent_type=agent_type)
+
+        agent_name = AGENTS[agent_type]["name"]
+        await update.message.reply_text(
+            f"🔄 **Conversation Reset!**\n\nYour conversation history with {agent_name} has been cleared.\n\nLet's start fresh! What would you like to discuss?",
+            parse_mode=ParseMode.MARKDOWN,
+        )
+
+        # Log analytics
+        await self.log_analytics(
+            user_id=str(user.id),
+            action="conversation_reset",
+            metadata={"agent_type": agent_type, "agent_name": agent_name},
+        )
+
+    async def stats(
+        self,
+        update: Update,
+        _context: ContextTypes.DEFAULT_TYPE,
+    ) -> None:
+        """Handle /stats command."""
+        user = update.effective_user
+
+        # Get user stats
+        stats = await self.db.get_user_stats(str(user.id))
+
+        # Format dates
+        if stats["first_message_date"]:
+            first_date = datetime.fromisoformat(
+                stats["first_message_date"].replace("Z", "+00:00")
+            )
+            # Ensure both datetimes are timezone-aware for proper comparison
+            days_active = (datetime.now(UTC) - first_date).days
+            member_since = first_date.strftime("%B %d, %Y")
+        else:
+            days_active = 0
+            member_since = "Today"
+
+        stats_message = f"""
+**Your Statistics**
+
+**User:** {user.first_name or 'Founder'}
+**Member Since:** {member_since}
+**Days Active:** {days_active}
+
+**Total Messages:** {stats['total_messages']}
+- Product Manager: {stats['pm_messages']}
+- VC/Angel: {stats['vc_messages']}
+
+**Favorite Advisor:** {'Product Manager' if stats['pm_messages'] > stats['vc_messages'] else 'VC/Angel' if stats['vc_messages'] > stats['pm_messages'] else 'Tie!'}
+
+---
+Beta version - Feedback to @espejelomar
+"""
+
+        await update.message.reply_text(
+            stats_message,
+            parse_mode=ParseMode.MARKDOWN,
+        )
+
+        # Log analytics
+        await self.log_analytics(
+            user_id=str(user.id),
+            action="stats_viewed",
+            metadata={
+                "total_messages": stats["total_messages"],
+                "pm_messages": stats["pm_messages"],
+                "vc_messages": stats["vc_messages"],
+                "days_active": days_active,
+            },
+        )
+
+    async def help_command(
+        self,
+        update: Update,
+        _context: ContextTypes.DEFAULT_TYPE,
+    ) -> None:
+        """Handle /help command."""
+        help_text = """
+**How to use this bot:**
+
+**Commands:**
+- /start - Choose your advisor
+- /pm - Switch to Product Manager
+- /vc - Switch to VC/Angel Investor  
+- /reset - Clear conversation history
+- /stats - View your usage stats
+- /help - Show this help message
+
+**Tips:**
+- Be specific about your startup/product
+- Ask follow-up questions
+- Share your challenges openly
+- The AI has internet access for current data
+
+**Beta Version**
+This bot is in beta. Your feedback helps improve it.
+Report bugs or suggestions to @espejelomar
+
+Current advisor: Check bot responses to see which mode is active.
+"""
+
+        await update.message.reply_text(
+            help_text,
+            parse_mode=ParseMode.MARKDOWN,
+        )
+
+---
+
+## FILE: src/bot/__init__.py
+"""Telegram AI Bot with PM and VC personalities."""
+
+__version__ = "0.1.0"
+
+---
+
+## FILE: src/bot/agents.py
+"""AI agent configurations and OpenRouter integration."""
+
+import logging
+import os
+
+from dotenv import load_dotenv
+from openai import AsyncOpenAI
+
+from .config import AGENTS
+
+load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+
+class AIAgent:
+    """Manages AI agent interactions with OpenRouter."""
+
+    def __init__(self) -> None:
+        self.client = AsyncOpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+        )
+
+        # Use agent configurations from config.py
+        self.agents = AGENTS
+
+    async def get_response(
+        self,
+        agent_type: str,
+        messages: list[dict[str, str]],
+        user_message: str,
+    ) -> tuple[str, int]:
+        """Get AI response for the given agent type."""
+        try:
+            agent = self.agents[agent_type]
+
+            # Build message history
+            formatted_messages = [
+                {"role": "system", "content": agent["system_prompt"]},
+            ]
+
+            # Add conversation history
+            for msg in messages[-10:]:  # Last 10 messages
+                formatted_messages.append(
+                    {
+                        "role": msg["role"],
+                        "content": msg["message"],
+                    },
+                )
+
+            # Add current message
+            formatted_messages.append(
+                {
+                    "role": "user",
+                    "content": user_message,
+                },
+            )
+
+            # Get AI response
+            logger.debug(f"Calling OpenRouter with model: {agent['model']}")
+            response = await self.client.chat.completions.create(
+                model=agent["model"],
+                messages=formatted_messages,
+                max_tokens=800,
+                temperature=0.7,
+            )
+            logger.debug("Response received successfully")
+
+            content = response.choices[0].message.content
+            tokens = response.usage.total_tokens if response.usage else 0
+
+            return content, tokens
+
+        except Exception as e:
+            logger.error(f"Error getting AI response: {e}")
+
+            # Specific error handling for different types of failures
+            error_str = str(e).lower()
+            if "404" in error_str or "not found" in error_str:
+                return (
+                    "Sorry, the AI model is currently unavailable. Try switching agents with /vc or /pm.",
+                    0,
+                )
+            if "401" in error_str or "unauthorized" in error_str:
+                return (
+                    "API authentication failed. Please check the bot configuration.",
+                    0,
+                )
+            if "429" in error_str or "rate limit" in error_str:
+                return (
+                    "Too many requests. Please wait a moment and try again.",
+                    0,
+                )
+            if "timeout" in error_str:
+                return (
+                    "Request timed out. Please try again with a shorter message.",
+                    0,
+                )
+            return (
+                "I apologize, but I'm having trouble processing your request. Please try again.",
+                0,
+            )
+
+---
+
+## FILE: src/bot/utils.py
+"""Utility functions for the bot."""
+
+from datetime import datetime, timedelta
+from typing import Dict, List
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class RateLimiter:
+    """Simple in-memory rate limiter."""
+
+    def __init__(self, max_requests: int = 30, window_minutes: int = 60):
+        self.max_requests = max_requests
+        self.window = timedelta(minutes=window_minutes)
+        self.requests: Dict[str, List[datetime]] = {}
+
+    def is_allowed(self, user_id: str) -> tuple[bool, str]:
+        """Check if user is within rate limits."""
+        now = datetime.now()
+        user_id = str(user_id)
+
+        # Clean old requests
+        if user_id in self.requests:
+            self.requests[user_id] = [
+                req_time
+                for req_time in self.requests[user_id]
+                if now - req_time < self.window
+            ]
+        else:
+            self.requests[user_id] = []
+
+        # Check limit
+        request_count = len(self.requests[user_id])
+        if request_count >= self.max_requests:
+            wait_time = self.window - (now - self.requests[user_id][0])
+            minutes = int(wait_time.total_seconds() / 60)
+            return False, f"Rate limit reached. Please wait {minutes} minutes."
+
+        # Allow request
+        self.requests[user_id].append(now)
+        return True, ""
+
+
+# Global rate limiter instance
+rate_limiter = RateLimiter(max_requests=30, window_minutes=60)
+
+---
+
+## FILE: src/bot/main.py
+"""Main bot application."""
+
+import logging
+import sys
+
+from telegram import Update
+from telegram.ext import (
+    Application,
+    CallbackQueryHandler,
+    CommandHandler,
+    MessageHandler,
+    filters,
+)
+
+from .config import TELEGRAM_BOT_TOKEN
+from .handlers import BotHandlers
+from .middleware import error_handler
+
+# Enable logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
+
+
+def main() -> None:
+    """Start the bot."""
+    # Create application
+    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+
+    # Initialize handlers
+    handlers = BotHandlers()
+
+    # Register command handlers
+    application.add_handler(CommandHandler("start", handlers.start))
+    application.add_handler(CommandHandler("pm", handlers.switch_to_pm))
+    application.add_handler(CommandHandler("vc", handlers.switch_to_vc))
+    application.add_handler(CommandHandler("reset", handlers.reset))
+    application.add_handler(CommandHandler("stats", handlers.stats))
+    application.add_handler(CommandHandler("help", handlers.help_command))
+
+    # Register callback query handler for inline keyboards
+    application.add_handler(
+        CallbackQueryHandler(
+            handlers.handle_agent_selection,
+            pattern="^select_",
+        )
+    )
+
+    # Register message handler for regular text
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            handlers.handle_message,
+        )
+    )
+
+    # Add error handler
+    application.add_error_handler(error_handler)
+
+    # Start the bot
+    logger.info("Starting bot...")
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
+        sys.exit(1)
+
+---
+
+## FILE: src/bot/__main__.py
+"""Allow running bot as module: python -m bot"""
+
+from .main import main
+
+if __name__ == "__main__":
+    main()
+
+---
+
+## FILE: src/bot/middleware.py
+"""Middleware for error handling and logging."""
+
+import logging
+from telegram import Update
+from telegram.ext import ContextTypes
+
+logger = logging.getLogger(__name__)
+
+
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log errors and notify user."""
+    logger.error(f"Exception while handling an update: {context.error}")
+
+    if update and update.effective_message:
+        await update.effective_message.reply_text(
+            "Sorry, something went wrong. Please try again or use /help.\n\n"
+            "If this persists, please report to @espejelomar"
+        )
+
+---
+
+## FILE: tests/test_database.py
+"""Tests for database operations."""
+import pytest
+from unittest.mock import Mock, patch
+from src.bot.database import Database
+
+
+class TestDatabase:
+    """Test cases for Database class."""
+    
+    @patch('src.bot.database.create_client')
+    def test_database_init(self, mock_create_client):
+        """Test database initialization."""
+        mock_client = Mock()
+        mock_create_client.return_value = mock_client
+        
+        db = Database()
+        
+        assert db.client == mock_client
+        mock_create_client.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_save_message_success(self):
+        """Test successful message saving."""
+        # This will be implemented when we have actual Supabase setup
+        pass
+    
+    @pytest.mark.asyncio
+    async def test_get_conversation_history_success(self):
+        """Test successful conversation history retrieval."""
+        # This will be implemented when we have actual Supabase setup
+        pass
+---
+
+## FILE: tests/__init__.py
+# Tests package
+---
+
+## FILE: scripts/basic_analytics_report.py
+"""Generate basic analytics report using existing tables only."""
+import asyncio
+import os
+from datetime import datetime, timedelta, UTC
+from supabase import create_client
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+async def generate_basic_analytics_report():
+    """Generate a basic analytics report using conversations and user_sessions tables."""
+    try:
+        # Initialize Supabase client
+        supabase = create_client(
+            os.getenv("SUPABASE_URL"),
+            os.getenv("SUPABASE_SERVICE_KEY")
+        )
+        
+        print("📊 Basic Bot Analytics Report")
+        print("=" * 50)
+        print("ℹ️  Using existing tables (conversations, user_sessions)")
+        print("   For full analytics, create the bot_analytics table")
+        print()
+        
+        # Get date ranges
+        now = datetime.now(UTC)
+        last_24h = now - timedelta(hours=24)
+        last_7d = now - timedelta(days=7)
+        last_30d = now - timedelta(days=30)
+        
+        # Total unique users from conversations
+        conversations = supabase.table('conversations')\
+            .select('user_id')\
+            .execute()
+        
+        unique_users = set(row['user_id'] for row in conversations.data)
+        print(f"👥 Total Unique Users: {len(unique_users)}")
+        
+        # Total messages
+        total_messages = supabase.table('conversations')\
+            .select('id', count='exact')\
+            .eq('role', 'user')\
+            .execute()
+        
+        print(f"💬 Total User Messages: {total_messages.count}")
+        
+        # Messages by agent type
+        pm_messages = supabase.table('conversations')\
+            .select('id', count='exact')\
+            .eq('agent_type', 'pm')\
+            .eq('role', 'user')\
+            .execute()
+        
+        vc_messages = supabase.table('conversations')\
+            .select('id', count='exact')\
+            .eq('agent_type', 'vc')\
+            .eq('role', 'user')\
+            .execute()
+        
+        print(f"🚀 PM Agent Messages: {pm_messages.count}")
+        print(f"🦈 VC Agent Messages: {vc_messages.count}")
+        
+        # Activity by time period
+        print(f"\n📅 Activity by Time Period:")
+        for period_name, period_date in [("24 hours", last_24h), ("7 days", last_7d), ("30 days", last_30d)]:
+            messages = supabase.table('conversations')\
+                .select('user_id')\
+                .eq('role', 'user')\
+                .gte('created_at', period_date.isoformat())\
+                .execute()
+            
+            active_users = set(row['user_id'] for row in messages.data)
+            print(f"   Last {period_name}: {len(messages.data)} messages, {len(active_users)} active users")
+        
+        # Active sessions
+        active_sessions = supabase.table('user_sessions')\
+            .select('*')\
+            .execute()
+        
+        print(f"\n👤 Active Sessions: {len(active_sessions.data)}")
+        
+        # Agent preferences from sessions
+        agent_prefs = {"pm": 0, "vc": 0}
+        for session in active_sessions.data:
+            current_agent = session.get('current_agent', '')
+            if current_agent in agent_prefs:
+                agent_prefs[current_agent] += 1
+        
+        print(f"🤖 Current Agent Preferences:")
+        print(f"   🚀 Product Manager: {agent_prefs['pm']}")
+        print(f"   🦈 VC/Angel: {agent_prefs['vc']}")
+        
+        # Most active users (top 5)
+        user_message_counts = {}
+        for row in conversations.data:
+            user_id = row['user_id']
+            user_message_counts[user_id] = user_message_counts.get(user_id, 0) + 1
+        
+        top_users = sorted(user_message_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        print(f"\n🏆 Most Active Users (Top 5):")
+        for i, (user_id, count) in enumerate(top_users, 1):
+            print(f"   {i}. User {user_id[-8:]}: {count} messages")
+        
+        # Recent activity
+        recent_messages = supabase.table('conversations')\
+            .select('*')\
+            .eq('role', 'user')\
+            .gte('created_at', last_24h.isoformat())\
+            .order('created_at', desc=True)\
+            .limit(5)\
+            .execute()
+        
+        print(f"\n🕐 Recent Activity (Last 24h):")
+        for msg in recent_messages.data:
+            created_at = datetime.fromisoformat(msg['created_at'].replace('Z', '+00:00'))
+            time_ago = now - created_at
+            hours_ago = int(time_ago.total_seconds() / 3600)
+            agent_emoji = "🚀" if msg['agent_type'] == 'pm' else "🦈"
+            print(f"   {agent_emoji} {hours_ago}h ago: User {msg['user_id'][-8:]} ({msg['agent_type']})")
+        
+        print(f"\n✅ Basic report generated successfully!")
+        print(f"\n💡 To get full analytics:")
+        print("1. Run: uv run python scripts/run_migrations.py")
+        print("2. Copy the bot_analytics table SQL to your Supabase SQL editor")
+        print("3. Execute the SQL to create the analytics table")
+        print("4. Run: uv run python scripts/analytics_report.py")
+        
+    except Exception as e:
+        print(f"❌ Error generating basic analytics report: {e}")
+
+
+if __name__ == "__main__":
+    asyncio.run(generate_basic_analytics_report())
+
+---
+
+## FILE: scripts/test_datetime_fix.py
+"""Test the datetime fix for the stats functionality."""
+from datetime import datetime, UTC
+
+def test_datetime_handling():
+    """Test that timezone-aware datetime operations work correctly."""
+    
+    # Simulate a datetime string from Supabase (timezone-aware)
+    sample_date_str = "2025-01-01T10:00:00.000Z"
+    
+    # Parse the date (this is what comes from the database)
+    first_date = datetime.fromisoformat(sample_date_str.replace("Z", "+00:00"))
+    
+    # Calculate days active (this is the line that was failing)
+    current_time = datetime.now(UTC)
+    days_active = (current_time - first_date).days
+    
+    print("✅ Datetime fix test passed!")
+    print(f"📅 Sample date: {first_date}")
+    print(f"🕐 Current time: {current_time}")
+    print(f"📊 Days active: {days_active}")
+    print(f"🎯 Member since: {first_date.strftime('%B %d, %Y')}")
+
+
+if __name__ == "__main__":
+    print("🧪 Testing datetime handling fix...")
+    test_datetime_handling()
+    print("🎉 All tests passed!")
+
+---
+
+## FILE: scripts/test_supabase.py
+"""Test script for Supabase connection."""
+
+import asyncio
+import os
+from dotenv import load_dotenv
+from supabase import create_client
+
+load_dotenv()
+
+
+async def test_supabase_connection():
+    """Test Supabase connection and basic operations."""
+    try:
+        # Initialize Supabase client
+        supabase = create_client(
+            os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_KEY")
+        )
+
+        print("✅ Supabase client created successfully")
+
+        # Test a simple query (this will fail if tables don't exist yet)
+        try:
+            result = supabase.table("conversations").select("*").limit(1).execute()
+            print(f"✅ Conversations table query successful: {len(result.data)} rows")
+        except Exception as e:
+            print(
+                f"⚠️  Conversations table query failed (expected if tables don't exist): {e}"
+            )
+
+        try:
+            result = supabase.table("user_sessions").select("*").limit(1).execute()
+            print(f"✅ User sessions table query successful: {len(result.data)} rows")
+        except Exception as e:
+            print(
+                f"⚠️  User sessions table query failed (expected if tables don't exist): {e}"
+            )
+
+        print("\n🎯 Supabase connection test completed!")
+
+    except Exception as e:
+        print(f"❌ Supabase connection failed: {e}")
+        print("Please check your SUPABASE_URL and SUPABASE_SERVICE_KEY in .env file")
+
+
+if __name__ == "__main__":
+    asyncio.run(test_supabase_connection())
+
+---
+
+## FILE: scripts/analytics_report.py
+"""Generate analytics report from bot usage data."""
+import asyncio
+import os
+from datetime import datetime, timedelta, UTC
+from supabase import create_client
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+async def generate_analytics_report():
+    """Generate a comprehensive analytics report."""
+    try:
+        # Initialize Supabase client
+        supabase = create_client(
+            os.getenv("SUPABASE_URL"),
+            os.getenv("SUPABASE_SERVICE_KEY")
+        )
+        
+        print("📊 Bot Analytics Report")
+        print("=" * 50)
+        
+        # Get date ranges
+        now = datetime.now(UTC)
+        last_24h = now - timedelta(hours=24)
+        last_7d = now - timedelta(days=7)
+        last_30d = now - timedelta(days=30)
+        
+        # Total users
+        total_users = supabase.table('bot_analytics')\
+            .select('user_id', count='exact')\
+            .execute()
+        
+        unique_users = supabase.table('bot_analytics')\
+            .select('user_id')\
+            .execute()
+        
+        unique_user_count = len(set(row['user_id'] for row in unique_users.data))
+        
+        print(f"👥 Total Users: {unique_user_count}")
+        print(f"📈 Total Events: {total_users.count}")
+        
+        # Activity by time period
+        for period_name, period_date in [("24 hours", last_24h), ("7 days", last_7d), ("30 days", last_30d)]:
+            events = supabase.table('bot_analytics')\
+                .select('*')\
+                .gte('created_at', period_date.isoformat())\
+                .execute()
+            
+            users = set(row['user_id'] for row in events.data)
+            print(f"📅 Last {period_name}: {len(events.data)} events, {len(users)} users")
+        
+        # Most popular actions
+        print(f"\n🎯 Popular Actions:")
+        actions = supabase.table('bot_analytics')\
+            .select('action')\
+            .execute()
+        
+        action_counts = {}
+        for row in actions.data:
+            action = row['action']
+            action_counts[action] = action_counts.get(action, 0) + 1
+        
+        for action, count in sorted(action_counts.items(), key=lambda x: x[1], reverse=True):
+            print(f"   {action}: {count}")
+        
+        # Agent preferences
+        print(f"\n🤖 Agent Preferences:")
+        agent_selections = supabase.table('bot_analytics')\
+            .select('metadata')\
+            .eq('action', 'agent_selected')\
+            .execute()
+        
+        agent_counts = {"pm": 0, "vc": 0}
+        for row in agent_selections.data:
+            if row['metadata'] and 'agent_type' in row['metadata']:
+                agent_type = row['metadata']['agent_type']
+                if agent_type in agent_counts:
+                    agent_counts[agent_type] += 1
+        
+        print(f"   🚀 Product Manager: {agent_counts['pm']}")
+        print(f"   🦈 VC/Angel: {agent_counts['vc']}")
+        
+        # Recent errors
+        errors = supabase.table('bot_analytics')\
+            .select('*')\
+            .eq('action', 'message_error')\
+            .gte('created_at', last_7d.isoformat())\
+            .execute()
+        
+        print(f"\n⚠️  Errors (last 7 days): {len(errors.data)}")
+        
+        # Rate limiting
+        rate_limits = supabase.table('bot_analytics')\
+            .select('*')\
+            .eq('action', 'rate_limited')\
+            .gte('created_at', last_7d.isoformat())\
+            .execute()
+        
+        print(f"🚫 Rate Limits (last 7 days): {len(rate_limits.data)}")
+        
+        print(f"\n✅ Report generated successfully!")
+        
+    except Exception as e:
+        print(f"❌ Error generating analytics report: {e}")
+
+
+if __name__ == "__main__":
+    asyncio.run(generate_analytics_report())
+
+---
+
+## FILE: scripts/test_openrouter.py
+"""Test OpenRouter API connection and model availability."""
+import asyncio
+import os
+from openai import AsyncOpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+async def test_openrouter_connection():
+    """Test OpenRouter API connection and Sonar Pro model."""
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    
+    if not api_key:
+        print("❌ No OPENROUTER_API_KEY found in .env")
+        return
+    
+    try:
+        # Initialize OpenRouter client
+        client = AsyncOpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+        )
+        
+        print("✅ OpenRouter client created successfully")
+        
+        # Test the Sonar Pro model with a simple message
+        print("🧪 Testing perplexity/sonar-pro model...")
+        
+        response = await client.chat.completions.create(
+            model="perplexity/sonar-pro",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": "You are a helpful AI assistant."
+                },
+                {
+                    "role": "user", 
+                    "content": "Say hello and confirm you're working!"
+                }
+            ],
+            max_tokens=100,
+            temperature=0.7,
+        )
+        
+        if response.choices and response.choices[0].message.content:
+            print("✅ Model response received!")
+            print(f"🤖 Response: {response.choices[0].message.content}")
+            print(f"📊 Tokens used: {response.usage.total_tokens if response.usage else 'Unknown'}")
+        else:
+            print("⚠️  Empty response from model")
+            
+    except Exception as e:
+        print(f"❌ Error testing OpenRouter: {e}")
+        
+        # Provide specific guidance based on error type
+        error_str = str(e).lower()
+        if "401" in error_str or "unauthorized" in error_str:
+            print("💡 Tip: Check your OPENROUTER_API_KEY in .env file")
+        elif "404" in error_str or "not found" in error_str:
+            print("💡 Tip: The model 'perplexity/sonar-pro' might not be available")
+            print("   Visit https://openrouter.ai/models to check available models")
+        elif "429" in error_str:
+            print("💡 Tip: Rate limit reached, wait a moment and try again")
+
+
+if __name__ == "__main__":
+    print("🚀 Testing OpenRouter API connection...")
+    print("=" * 50)
+    asyncio.run(test_openrouter_connection())
+
+---
+
+## FILE: scripts/test_telegram_bot.py
+"""Test Telegram bot connection."""
+
+import asyncio
+import os
+
+from dotenv import load_dotenv
+from telegram import Bot
+
+load_dotenv()
+
+
+async def test_bot() -> None:
+    """Test bot token and get bot info."""
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+
+    if not token:
+        print("❌ No TELEGRAM_BOT_TOKEN found in .env")
+        return
+
+    try:
+        bot = Bot(token=token)
+        bot_info = await bot.get_me()
+
+        print("✅ Bot connected successfully!")
+        print(f"🤖 Bot name: {bot_info.first_name}")
+        print(f"📱 Bot username: @{bot_info.username}")
+        print(f"🆔 Bot ID: {bot_info.id}")
+        print(f"💬 Can join groups: {bot_info.can_join_groups}")
+        print(f"📖 Can read all group messages: {bot_info.can_read_all_group_messages}")
+
+    except Exception as e:
+        print(f"❌ Error connecting to bot: {e}")
+
+
+if __name__ == "__main__":
+    asyncio.run(test_bot())
+
+---
+
+## FILE: scripts/run_migrations.py
+"""Display SQL migrations that need to be run manually in Supabase."""
+
+import os
+from pathlib import Path
+from supabase import create_client
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def check_tables_exist():
+    """Check which tables exist in the database."""
+    try:
+        supabase = create_client(
+            os.getenv("SUPABASE_URL"),
+            os.getenv("SUPABASE_SERVICE_KEY")
+        )
+        
+        print("🔍 Checking existing tables...")
+        
+        # Try to query each expected table
+        tables_to_check = ['conversations', 'user_sessions', 'bot_analytics']
+        existing_tables = []
+        
+        for table in tables_to_check:
+            try:
+                result = supabase.table(table).select('*').limit(1).execute()
+                existing_tables.append(table)
+                print(f"   ✅ {table} - exists")
+            except Exception as e:
+                print(f"   ❌ {table} - missing: {str(e)}")
+        
+        return existing_tables
+        
+    except Exception as e:
+        print(f"❌ Error checking tables: {e}")
+        return []
+
+
+def display_migrations():
+    """Display SQL migration content for manual execution."""
+    try:
+        print("\n🚀 Database Migration Setup")
+        print("=" * 50)
+        
+        # Check existing tables
+        existing_tables = check_tables_exist()
+        
+        # Get migrations directory
+        migrations_dir = Path(__file__).parent.parent / "migrations"
+        
+        if not migrations_dir.exists():
+            print("❌ Migrations directory not found!")
+            return
+        
+        # Get all SQL files and sort them
+        migration_files = sorted(migrations_dir.glob("*.sql"))
+        
+        if not migration_files:
+            print("❌ No migration files found!")
+            return
+        
+        print(f"\n📄 Found {len(migration_files)} migration files:")
+        
+        # Display each migration
+        for migration_file in migration_files:
+            print(f"\n{'='*60}")
+            print(f"📄 {migration_file.name}")
+            print(f"{'='*60}")
+            
+            # Check if this migration is needed
+            if migration_file.name == "001_initial_schema.sql":
+                needed = not all(table in existing_tables for table in ['conversations', 'user_sessions'])
+            elif migration_file.name == "002_analytics_table.sql":
+                needed = 'bot_analytics' not in existing_tables
+            else:
+                needed = True
+            
+            if needed:
+                print("🟡 STATUS: NEEDS TO BE RUN")
+            else:
+                print("🟢 STATUS: ALREADY APPLIED")
+            
+            print("\n📝 SQL Content:")
+            print("-" * 40)
+            
+            # Read and display the SQL content
+            sql_content = migration_file.read_text()
+            print(sql_content)
+            
+            print("-" * 40)
+        
+        print(f"\n📋 INSTRUCTIONS:")
+        print("1. Open your Supabase dashboard")
+        print("2. Go to SQL Editor")
+        print("3. Copy and paste each migration marked as 'NEEDS TO BE RUN'")
+        print("4. Execute the SQL in order (001, 002, etc.)")
+        print("5. Run the analytics report again")
+        
+        if 'bot_analytics' not in existing_tables:
+            print(f"\n⚠️  IMPORTANT: The bot_analytics table is missing!")
+            print("   This is why your analytics report is failing.")
+            print("   Please run migration 002_analytics_table.sql")
+        
+    except Exception as e:
+        print(f"❌ Error displaying migrations: {e}")
+
+
+if __name__ == "__main__":
+    display_migrations()
+
+---
+
+## FILE: migrations/002_analytics_table.sql
+-- Analytics table for tracking bot usage
+-- This file contains the schema for bot analytics and usage tracking
+
+-- Bot analytics table to store user interaction events
+CREATE TABLE IF NOT EXISTS bot_analytics (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for better performance on analytics queries
+CREATE INDEX IF NOT EXISTS idx_bot_analytics_user_id ON bot_analytics(user_id);
+CREATE INDEX IF NOT EXISTS idx_bot_analytics_action ON bot_analytics(action);
+CREATE INDEX IF NOT EXISTS idx_bot_analytics_created_at ON bot_analytics(created_at);
+CREATE INDEX IF NOT EXISTS idx_bot_analytics_user_action ON bot_analytics(user_id, action);
+
+-- Analytics events that will be tracked:
+-- - bot_started: When user first starts the bot
+-- - agent_selected: When user selects PM or VC agent
+-- - agent_switched: When user switches between agents  
+-- - message_processed: When user sends message and gets AI response
+-- - message_error: When message processing fails
+-- - conversation_reset: When user resets conversation history
+-- - stats_viewed: When user checks their statistics
+-- - rate_limited: When user hits rate limit (optional enhancement)
+
+---
+
+## FILE: migrations/001_initial_schema.sql
+-- Initial schema for Telegram AI Bot
+-- This file contains the database schema for conversations and user sessions
+
+-- Conversations table to store all chat messages
+CREATE TABLE IF NOT EXISTS conversations (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    username TEXT,
+    first_name TEXT,
+    agent_type TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+    message TEXT NOT NULL,
+    tokens_used INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- User sessions table to track active users and their current agent
+CREATE TABLE IF NOT EXISTS user_sessions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id TEXT UNIQUE NOT NULL,
+    username TEXT,
+    first_name TEXT,
+    current_agent TEXT NOT NULL,
+    last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_agent_type ON conversations(agent_type);
+CREATE INDEX IF NOT EXISTS idx_conversations_created_at ON conversations(created_at);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_last_active ON user_sessions(last_active);
+---
+
+## FILE: ./main.py
+def main():
+    print("Hello from telegram-ai-bot-v2!")
+
+
+if __name__ == "__main__":
+    main()
+
+---
+
