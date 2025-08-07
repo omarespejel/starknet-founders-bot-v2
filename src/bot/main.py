@@ -40,12 +40,21 @@ def main() -> None:
     application.add_handler(CommandHandler("reset", handlers.reset))
     application.add_handler(CommandHandler("stats", handlers.stats))
     application.add_handler(CommandHandler("help", handlers.help_command))
+    application.add_handler(CommandHandler("export", handlers.export_conversation))
 
     # Register callback query handler for inline keyboards
     application.add_handler(
         CallbackQueryHandler(
             handlers.handle_agent_selection,
             pattern="^select_",
+        )
+    )
+
+    # Add export callback handler
+    application.add_handler(
+        CallbackQueryHandler(
+            handlers.handle_export,
+            pattern="^export_",
         )
     )
 

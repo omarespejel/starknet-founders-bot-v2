@@ -60,7 +60,7 @@ then provide specific, actionable advice for improvement. Focus on:
 │       ├── main.py
 │       ├── middleware.py
 │       └── utils.py
-├── telegram-bot-context-prompt-20250807-1950.txt
+├── telegram-bot-context-prompt-20250807-2026.txt
 └── tests
     ├── __init__.py
     └── test_database.py
@@ -942,6 +942,7 @@ class Database:
 """Telegram bot command handlers."""
 
 import logging
+import re
 from datetime import UTC, datetime
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -1229,14 +1230,16 @@ Switch advisors anytime with /pm or /vc
             try:
                 await update.message.reply_text(
                     ai_response,
-                    parse_mode=ParseMode.MARKDOWN,
+                    parse_mode=ParseMode.HTML,
                     disable_web_page_preview=True,
                 )
             except Exception as e:
-                # If markdown fails, try without formatting
-                logger.warning(f"Markdown parsing failed: {e}")
+                # If HTML fails, try without formatting
+                logger.warning(f"HTML parsing failed: {e}")
+                # Strip HTML tags for plain text fallback
+                plain_text = re.sub(r'<[^>]+>', '', ai_response)
                 await update.message.reply_text(
-                    ai_response.replace('*', '').replace('_', '').replace('`', ''),
+                    plain_text,
                     parse_mode=None,
                     disable_web_page_preview=True,
                 )
@@ -1516,6 +1519,10 @@ class AIAgent:
         # Replace all citations with links
         formatted_content = re.sub(citation_pattern, replace_citation, content_without_refs)
         
+        # Log citation processing results
+        if references:
+            logger.debug(f"Standard citation format detected: {len(references)} references found")
+        
         return formatted_content
 
     def parse_perplexity_citations(self, content: str) -> str:
@@ -1557,17 +1564,30 @@ class AIAgent:
             # Replace [1,2,3] style citations
             content_with_links = re.sub(r'\[([0-9,\s]+)\]', replace_inline_citation, content_without_sources)
             
+            # Log Perplexity citation processing
+            logger.debug(f"Perplexity citation format detected: {len(sources)} sources found")
+            
             return content_with_links
         
         return content
 
     def format_response(self, content: str, agent_type: str) -> str:
-        """Format AI response with proper markdown and citations."""
+        """Format AI response with HTML formatting for better reliability."""
+        # Debug logging to monitor citation formats
+        logger.debug(f"Raw content before citation parsing: {content[:500]}")
+        
         # Try Perplexity format first
         content = self.parse_perplexity_citations(content)
         
         # Then try standard citation format
         content = self.extract_and_format_citations(content)
+        
+        # Convert markdown links to HTML (from citation parsing)
+        content = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', content)
+        
+        # Log if citations were found and processed
+        if '<a href=' in content:
+            logger.debug("Citations detected and processed in response")
         
         # Split content into sections
         lines = content.strip().split('\n')
@@ -1584,7 +1604,7 @@ class AIAgent:
             if line.endswith('?'):
                 question_count += 1
                 if question_count <= 7:  # First 5-7 questions get numbered
-                    formatted_lines.append(f"**{question_count}.** {line}")
+                    formatted_lines.append(f"<b>{question_count}.</b> {line}")
                 else:
                     formatted_lines.append(f"• {line}")
             # Format action items or key points
@@ -1594,11 +1614,11 @@ class AIAgent:
             elif any(framework in line for framework in ['RICE', 'Jobs-to-be-Done', 'Growth Loop', 'TAM', 'CAC', 'LTV', 'PMF']):
                 # Bold the framework names
                 for framework in ['RICE', 'Jobs-to-be-Done', 'Growth Loop', 'TAM', 'CAC', 'LTV', 'PMF']:
-                    line = line.replace(framework, f"**{framework}**")
+                    line = line.replace(framework, f"<b>{framework}</b>")
                 formatted_lines.append(line)
             # Format section headers (lines that are short and don't end with punctuation)
             elif len(line) < 50 and not line.endswith(('.', '!', '?', ':')):
-                formatted_lines.append(f"\n**{line}**")
+                formatted_lines.append(f"\n<b>{line}</b>")
             else:
                 formatted_lines.append(line)
         
@@ -1608,9 +1628,9 @@ class AIAgent:
         
         # Add action item section if not present
         if "next step" not in formatted_content.lower() and "action item" not in formatted_content.lower():
-            formatted_content += "\n\n**💡 Next Step:** Reflect on the above questions and share your thoughts on the most challenging one."
+            formatted_content += "\n\n<b>💡 Next Step:</b> Reflect on the above questions and share your thoughts on the most challenging one."
         
-        return f"{header_emoji} **Response:**\n\n{formatted_content}"
+        return f"{header_emoji} <b>Response:</b>\n\n{formatted_content}"
 
     async def get_response(
         self,
@@ -2467,11 +2487,15 @@ if __name__ == "__main__":
 ## FILE: scripts/test_enhanced_bot.py
 """Test enhanced bot features."""
 import asyncio
+import logging
 import sys
 import os
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+# Enable debug logging to see citation processing
+logging.basicConfig(level=logging.DEBUG, format='%(name)s - %(levelname)s - %(message)s')
 
 from src.bot.agents import AIAgent
 

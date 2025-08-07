@@ -1,5 +1,6 @@
 """Telegram bot command handlers."""
 
+import io
 import logging
 import re
 from datetime import UTC, datetime
@@ -11,6 +12,7 @@ from telegram.ext import ContextTypes
 from .agents import AIAgent
 from .config import AGENTS
 from .database import Database
+from .exporters import ConversationExporter
 from .utils import rate_limiter
 
 logger = logging.getLogger(__name__)
@@ -69,6 +71,50 @@ class BotHandlers:
         except Exception as e:
             logger.error(f"Error generating conversation summary: {e}")
             return ""
+
+    async def generate_ai_summary(self, user_id: str, agent_type: str) -> str:
+        """Generate AI-powered summary of last 4 exchanges."""
+        try:
+            # Get last 8 messages (4 user + 4 assistant)
+            history = await self.db.get_conversation_history(
+                user_id=user_id,
+                agent_type=agent_type,
+                limit=8
+            )
+            
+            if not history:
+                return "No recent conversation to summarize."
+            
+            # Format conversation for summary
+            conversation_text = ""
+            for msg in history:
+                role = "User" if msg['role'] == 'user' else "Advisor"
+                conversation_text += f"{role}: {msg['message'][:200]}...\n"
+            
+            # Summary prompt
+            summary_prompt = """Summarize this startup advisory session in 3 bullet points:
+            - Key insight discovered
+            - Main challenge identified  
+            - Next action to take
+            Keep each point under 15 words."""
+            
+            messages = [
+                {"role": "system", "content": summary_prompt},
+                {"role": "user", "content": f"Session: {conversation_text}"}
+            ]
+            
+            response = await self.ai.client.chat.completions.create(
+                model="gpt-3.5-turbo",  # Use faster model for summaries
+                messages=messages,
+                max_tokens=150,
+                temperature=0.3
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            logger.error(f"Error generating AI summary: {e}")
+            return "Unable to generate summary at this time."
 
     async def start(self, update: Update, _context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /start command."""
@@ -315,6 +361,33 @@ Switch advisors anytime with /pm or /vc
                 },
             )
 
+            # Check if we should generate a summary (every 4 user messages)
+            message_count = await self.db.get_message_count(str(user.id), agent_type)
+            
+            if message_count > 0 and message_count % 4 == 0:
+                # Generate and send summary
+                summary = await self.generate_ai_summary(str(user.id), agent_type)
+                
+                summary_message = f"""
+📊 <b>Progress Summary (Last 4 exchanges):</b>
+
+{summary}
+
+<i>Keep going! What's your next question?</i>
+"""
+                await update.message.reply_text(
+                    summary_message,
+                    parse_mode=ParseMode.HTML,
+                    disable_web_page_preview=True,
+                )
+                
+                # Save summary to database
+                await self.db.save_conversation_summary(
+                    user_id=str(user.id),
+                    agent_type=agent_type,
+                    summary=summary
+                )
+
         except Exception as e:
             logger.error(f"Error handling message: {e}")
             await update.message.reply_text(
@@ -427,26 +500,33 @@ Switch advisors anytime with /pm or /vc
             days_active = 0
             member_since = "Today"
 
+        # Determine favorite advisor
+        if stats['pm_messages'] > stats['vc_messages']:
+            favorite = "🚀 Product Manager"
+        elif stats['vc_messages'] > stats['pm_messages']:
+            favorite = "🦈 VC/Angel"
+        else:
+            favorite = "Both equally!"
+        
         stats_message = f"""
-**Your Statistics**
+📊 <b>Your Statistics</b>
 
-**User:** {user.first_name or 'Founder'}
-**Member Since:** {member_since}
-**Days Active:** {days_active}
+👤 <b>User:</b> {user.first_name or 'Founder'}
+📅 <b>Member Since:</b> {member_since}
+⏱️ <b>Days Active:</b> {days_active}
 
-**Total Messages:** {stats['total_messages']}
-- Product Manager: {stats['pm_messages']}
-- VC/Angel: {stats['vc_messages']}
+💬 <b>Total Messages:</b> {stats['total_messages']}
+├─ 🚀 PM: {stats['pm_messages']}
+└─ 🦈 VC: {stats['vc_messages']}
 
-**Favorite Advisor:** {'Product Manager' if stats['pm_messages'] > stats['vc_messages'] else 'VC/Angel' if stats['vc_messages'] > stats['pm_messages'] else 'Tie!'}
+⭐ <b>Favorite:</b> {favorite}
 
----
-Beta version - Feedback to @espejelomar
+<i>Beta version • Feedback: @espejelomar</i>
 """
 
         await update.message.reply_text(
             stats_message,
-            parse_mode=ParseMode.MARKDOWN,
+            parse_mode=ParseMode.HTML
         )
 
         # Log analytics
@@ -495,3 +575,84 @@ Current advisor: Check bot responses to see which mode is active.
             help_text,
             parse_mode=ParseMode.MARKDOWN,
         )
+
+    async def export_conversation(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /export command."""
+        user = update.effective_user
+        agent_type = context.user_data.get("agent_type", "pm")
+        
+        # Show export options
+        keyboard = [
+            [
+                InlineKeyboardButton("📝 Markdown", callback_data="export_markdown"),
+                InlineKeyboardButton("📄 PDF", callback_data="export_pdf")
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            "Choose export format:",
+            reply_markup=reply_markup
+        )
+
+    async def handle_export(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle export callback."""
+        query = update.callback_query
+        await query.answer()
+        
+        user = update.effective_user
+        agent_type = context.user_data.get("agent_type", "pm")
+        export_type = query.data.replace("export_", "")
+        
+        # Get conversation history
+        messages = await self.db.get_conversation_history(
+            user_id=str(user.id),
+            agent_type=agent_type,
+            limit=50  # Export last 50 messages
+        )
+        
+        if not messages:
+            await query.edit_message_text("No conversation history to export.")
+            return
+        
+        user_info = {
+            "first_name": user.first_name,
+            "username": user.username
+        }
+        
+        exporter = ConversationExporter()
+        
+        try:
+            if export_type == "markdown":
+                # Generate markdown
+                md_content = await exporter.export_to_markdown(messages, user_info)
+                
+                # Send as document
+                bio = io.BytesIO(md_content.encode())
+                bio.name = f"conversation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+                
+                await context.bot.send_document(
+                    chat_id=update.effective_chat.id,
+                    document=bio,
+                    caption="📝 Your conversation in Markdown format"
+                )
+            
+            elif export_type == "pdf":
+                # Generate PDF
+                pdf_bytes = await exporter.export_to_pdf(messages, user_info)
+                
+                # Send as document
+                bio = io.BytesIO(pdf_bytes)
+                bio.name = f"conversation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                
+                await context.bot.send_document(
+                    chat_id=update.effective_chat.id,
+                    document=bio,
+                    caption="📄 Your conversation in PDF format"
+                )
+            
+            await query.edit_message_text("✅ Export complete!")
+            
+        except Exception as e:
+            logger.error(f"Export error: {e}")
+            await query.edit_message_text("❌ Export failed. Please try again later.")
