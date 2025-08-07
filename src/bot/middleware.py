@@ -11,8 +11,8 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Log errors and notify user."""
     logger.error(f"Exception while handling an update: {context.error}")
 
-    # Notify user
     if update and update.effective_message:
         await update.effective_message.reply_text(
-            "😔 Sorry, something went wrong. Please try again or use /help."
+            "Sorry, something went wrong. Please try again or use /help.\n\n"
+            "If this persists, please report to @espejelomar"
         )
