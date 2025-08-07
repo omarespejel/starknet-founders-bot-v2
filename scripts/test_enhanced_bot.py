@@ -1,10 +1,14 @@
 """Test enhanced bot features."""
 import asyncio
+import logging
 import sys
 import os
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+# Enable debug logging to see citation processing
+logging.basicConfig(level=logging.DEBUG, format='%(name)s - %(levelname)s - %(message)s')
 
 from src.bot.agents import AIAgent
 

@@ -70,6 +70,10 @@ class AIAgent:
         # Replace all citations with links
         formatted_content = re.sub(citation_pattern, replace_citation, content_without_refs)
         
+        # Log citation processing results
+        if references:
+            logger.debug(f"Standard citation format detected: {len(references)} references found")
+        
         return formatted_content
 
     def parse_perplexity_citations(self, content: str) -> str:
@@ -111,17 +115,27 @@ class AIAgent:
             # Replace [1,2,3] style citations
             content_with_links = re.sub(r'\[([0-9,\s]+)\]', replace_inline_citation, content_without_sources)
             
+            # Log Perplexity citation processing
+            logger.debug(f"Perplexity citation format detected: {len(sources)} sources found")
+            
             return content_with_links
         
         return content
 
     def format_response(self, content: str, agent_type: str) -> str:
         """Format AI response with proper markdown and citations."""
+        # Debug logging to monitor citation formats
+        logger.debug(f"Raw content before citation parsing: {content[:500]}")
+        
         # Try Perplexity format first
         content = self.parse_perplexity_citations(content)
         
         # Then try standard citation format
         content = self.extract_and_format_citations(content)
+        
+        # Log if citations were found and processed
+        if '[' in content and 'http' in content:
+            logger.debug("Citations detected and processed in response")
         
         # Split content into sections
         lines = content.strip().split('\n')
