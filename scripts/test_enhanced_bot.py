@@ -31,6 +31,26 @@ What's your CAC to LTV ratio?
     formatted_vc = ai.format_response(test_content, "vc")
     print("Formatted VC Response:")
     print(formatted_vc)
+    
+    # Test citation parsing
+    print("\n" + "="*50 + "\n")
+    test_citations = """This is a fact about startups [1] and another insight [2].
+
+Sources:
+1. TechCrunch Article - https://techcrunch.com/example
+2. Harvard Business Review - https://hbr.org/example"""
+    
+    print("Citation Test Input:")
+    print(repr(test_citations))
+    print("\nCitation Test Output:")
+    citation_formatted = ai.format_response(test_citations, "pm")
+    print(citation_formatted)
+    
+    # Test direct citation extraction
+    print("\n" + "="*30 + "\n")
+    print("Direct Citation Extraction Test:")
+    extracted = ai.extract_and_format_citations(test_citations)
+    print(extracted)
 
 if __name__ == "__main__":
     asyncio.run(test_enhanced_formatting())

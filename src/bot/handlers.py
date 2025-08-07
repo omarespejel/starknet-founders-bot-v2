@@ -285,10 +285,20 @@ Switch advisors anytime with /pm or /vc
             )
 
             # Send response
-            await update.message.reply_text(
-                ai_response,
-                parse_mode=ParseMode.MARKDOWN,
-            )
+            try:
+                await update.message.reply_text(
+                    ai_response,
+                    parse_mode=ParseMode.MARKDOWN,
+                    disable_web_page_preview=True,
+                )
+            except Exception as e:
+                # If markdown fails, try without formatting
+                logger.warning(f"Markdown parsing failed: {e}")
+                await update.message.reply_text(
+                    ai_response.replace('*', '').replace('_', '').replace('`', ''),
+                    parse_mode=None,
+                    disable_web_page_preview=True,
+                )
 
             # Log analytics
             await self.log_analytics(
