@@ -16,8 +16,6 @@ async def test_enhanced_formatting():
     """Test the new formatting capabilities."""
     ai = AIAgent()
     
-    print("=== TESTING CONCISE RESPONSES (max_tokens=500) ===\n")
-    
     # Test response formatting
     test_content = """
 What problem are you solving?

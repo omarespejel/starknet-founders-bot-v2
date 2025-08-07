@@ -116,36 +116,6 @@ class Database:
         except Exception as e:
             logger.error(f"Error clearing conversations: {e}")
 
-    async def get_message_count(self, user_id: str, agent_type: str) -> int:
-        """Get count of user messages for an agent."""
-        try:
-            result = (
-                self.client.table("conversations")
-                .select("id", count="exact")
-                .eq("user_id", user_id)
-                .eq("agent_type", agent_type)
-                .eq("role", "user")
-                .execute()
-            )
-            return result.count or 0
-        except Exception as e:
-            logger.error(f"Error getting message count: {e}")
-            return 0
-
-    async def save_conversation_summary(
-        self, user_id: str, agent_type: str, summary: str
-    ) -> None:
-        """Save conversation summary."""
-        try:
-            self.client.table("conversation_summaries").insert({
-                "user_id": user_id,
-                "agent_type": agent_type,
-                "summary": summary,
-                "created_at": datetime.now(UTC).isoformat()
-            }).execute()
-        except Exception as e:
-            logger.error(f"Error saving conversation summary: {e}")
-
     async def get_user_stats(self, user_id: str) -> dict:
         """Get user statistics."""
         try:

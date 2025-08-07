@@ -11,8 +11,6 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pydantic>=2.5.0",
     "aiohttp>=3.9.0",
-    "fpdf2>=2.7.0",  # For PDF export
-    "markdown2>=2.4.0",  # For markdown processing
 ]
 
 [build-system]
