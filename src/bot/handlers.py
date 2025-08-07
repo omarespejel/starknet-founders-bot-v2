@@ -36,6 +36,39 @@ class BotHandlers:
         except Exception:
             pass  # Don't let analytics errors break the bot
 
+    async def get_conversation_summary(self, user_id: str, agent_type: str) -> str:
+        """Generate a summary of key points from conversation history."""
+        try:
+            # Get last 20 messages
+            history = await self.db.get_conversation_history(
+                user_id=user_id,
+                agent_type=agent_type,
+                limit=20
+            )
+            
+            if len(history) < 4:  # Not enough history
+                return ""
+            
+            # Extract key topics discussed
+            user_messages = [msg['message'] for msg in history if msg['role'] == 'user']
+            
+            # Simple keyword extraction for continuity
+            key_topics = []
+            keywords = ['product', 'users', 'market', 'growth', 'revenue', 'competition', 'funding', 'team']
+            
+            for keyword in keywords:
+                if any(keyword in msg.lower() for msg in user_messages):
+                    key_topics.append(keyword)
+            
+            if not key_topics:
+                return ""
+                
+            return f"Building on our discussion about {', '.join(key_topics[:3])}... "
+            
+        except Exception as e:
+            logger.error(f"Error generating conversation summary: {e}")
+            return ""
+
     async def start(self, update: Update, _context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /start command."""
         user = update.effective_user
@@ -58,23 +91,23 @@ class BotHandlers:
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         welcome_message = f"""
-🎯 **Welcome to Starknet Startup Advisor Bot!**
+Welcome to Starknet Startup Advisor Bot (Beta).
 
-Hi {user.first_name}! I'm your AI-powered startup advisor with two expert personalities:
+Hello {user.first_name}. I provide AI-powered guidance through two specialized advisors:
 
-{AGENTS["pm"]["name"]} **Product Manager**
-_Based on Lenny Rachitsky's frameworks_
-- Product-market fit strategies
-- User research & personas
-- Growth & retention tactics
-- Feature prioritization
+**Product Manager**
+Strategic product development guidance
+- Challenges your assumptions about users
+- Questions your product-market fit approach  
+- Probes your growth and retention strategies
+- Helps prioritize features that matter
 
-{AGENTS["vc"]["name"]} **Seed VC / Angel**
-_Current market insights_
-- Market analysis & TAM
-- Fundraising strategy
-- Pitch deck feedback
-- Traction metrics
+**VC/Angel Investor**
+Early-stage investment perspective
+- Questions market size and opportunity
+- Challenges your competitive positioning
+- Probes unit economics and metrics
+- Tests your fundraising readiness
 
 Choose your advisor to begin:
 """
@@ -138,33 +171,35 @@ Choose your advisor to begin:
 
         start_prompts = {
             "pm": [
-                "What's your product idea?",
-                "Tell me about your target users",
                 "What problem are you solving?",
+                "Who is your target user?",
+                "What's your current product stage?",
+                "What are you struggling with?"
             ],
             "vc": [
-                "What's your startup idea?",
-                "Tell me about your market",
-                "What traction do you have?",
-            ],
+                "What's your business model?",
+                "How big is your market?",
+                "What's your competitive advantage?",
+                "What metrics are you tracking?"
+            ]
         }
 
-        prompts = "\n• ".join(start_prompts[agent_type])
+        prompts = "\n- ".join(start_prompts[agent_type])
 
         await query.edit_message_text(
             f"""
-✅ **{agent_name} Selected!**
+{agent_name} selected.
 
-{agent_desc}
+I'll challenge your thinking and ask probing questions to help refine your strategy.
 
-Ready to help! You can start by sharing:
+Start by sharing:
 - {prompts}
 
-Or just tell me what's on your mind about your startup.
+Or tell me about your startup.
 
-💡 _Tip: You can switch advisors anytime with /pm or /vc_
+Switch advisors anytime with /pm or /vc
 """,
-            parse_mode=ParseMode.MARKDOWN,
+            parse_mode=ParseMode.MARKDOWN
         )
 
     async def handle_message(
@@ -219,11 +254,23 @@ Or just tell me what's on your mind about your startup.
                 limit=10,
             )
 
+            # Add conversation continuity for returning users
+            continuity_prefix = ""
+            if len(history) > 4:  # Has meaningful history
+                continuity_prefix = await self.get_conversation_summary(str(user.id), agent_type)
+
+            # Get AI response with continuity context
+            if continuity_prefix:
+                # Prepend continuity to user message for context
+                contextualized_message = f"[Continue from previous discussion: {continuity_prefix}]\n\nUser says: {message}"
+            else:
+                contextualized_message = message
+
             # Get AI response
             ai_response, tokens = await self.ai.get_response(
                 agent_type=agent_type,
                 messages=history,
-                user_message=message,
+                user_message=contextualized_message,
             )
 
             # Save AI response
@@ -368,19 +415,20 @@ Or just tell me what's on your mind about your startup.
             member_since = "Today"
 
         stats_message = f"""
-📊 **Your Statistics**
+**Your Statistics**
 
-👤 **User:** {user.first_name or 'Founder'}
-📅 **Member Since:** {member_since}
-⏱️ **Days Active:** {days_active}
+**User:** {user.first_name or 'Founder'}
+**Member Since:** {member_since}
+**Days Active:** {days_active}
 
-💬 **Total Messages:** {stats['total_messages']}
-├─ 🚀 Product Manager: {stats['pm_messages']}
-└─ 🦈 VC/Angel: {stats['vc_messages']}
+**Total Messages:** {stats['total_messages']}
+- Product Manager: {stats['pm_messages']}
+- VC/Angel: {stats['vc_messages']}
 
-🏆 **Favorite Advisor:** {'Product Manager' if stats['pm_messages'] > stats['vc_messages'] else 'VC/Angel' if stats['vc_messages'] > stats['pm_messages'] else 'Tie!'}
+**Favorite Advisor:** {'Product Manager' if stats['pm_messages'] > stats['vc_messages'] else 'VC/Angel' if stats['vc_messages'] > stats['pm_messages'] else 'Tie!'}
 
-Keep building! 🚀
+---
+Beta version - Feedback to @espejelomar
 """
 
         await update.message.reply_text(
@@ -407,7 +455,7 @@ Keep building! 🚀
     ) -> None:
         """Handle /help command."""
         help_text = """
-📚 **How to use this bot:**
+**How to use this bot:**
 
 **Commands:**
 - /start - Choose your advisor
@@ -423,9 +471,11 @@ Keep building! 🚀
 - Share your challenges openly
 - The AI has internet access for current data
 
-**Current advisor:** Check the bot's responses - they'll show which personality is active.
+**Beta Version**
+This bot is in beta. Your feedback helps improve it.
+Report bugs or suggestions to @espejelomar
 
-Questions? Contact @espejelomar
+Current advisor: Check bot responses to see which mode is active.
 """
 
         await update.message.reply_text(

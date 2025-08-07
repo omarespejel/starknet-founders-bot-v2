@@ -6,6 +6,8 @@ import os
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
+from .config import AGENTS
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -20,45 +22,53 @@ class AIAgent:
             api_key=os.getenv("OPENROUTER_API_KEY"),
         )
 
-        # Agent configurations
-        self.agents = {
-            "pm": {
-                "name": "🚀 Product Manager",
-                "model": "perplexity/sonar-pro",
-                "system_prompt": """You are Lenny Rachitsky, the renowned product strategy expert. You have access to:
-- All of Lenny's Newsletter content and frameworks
-- Current market data and product trends
-- Real-time information about successful products
+        # Use agent configurations from config.py
+        self.agents = AGENTS
 
-Focus on:
-1. Jobs-to-be-Done framework for product-market fit
-2. User research and persona development  
-3. Growth loops and retention strategies
-4. Prioritization frameworks (RICE, ICE)
-5. Building minimum lovable products
-
-Always provide specific, actionable advice with real examples. Be conversational but insightful.
-When users share ideas, ask probing questions like Lenny would.""",
-            },
-            "vc": {
-                "name": "🦈 Seed VC / Angel Investor",
-                "model": "perplexity/sonar-pro",
-                "system_prompt": """You are an experienced seed-stage investor and angel investor with access to:
-- Current funding market data and trends
-- Recent successful fundraising examples
-- Real-time valuations and metrics
-
-Focus on:
-1. Market timing and TAM analysis
-2. Founder-market fit assessment
-3. Early traction metrics that matter
-4. Unit economics and burn rate
-5. Fundraising strategy and deck feedback
-
-Be direct but constructive. Reference recent funding rounds and current market conditions.
-Challenge assumptions like a real investor would.""",
-            },
-        }
+    def format_response(self, content: str, agent_type: str) -> str:
+        """Format AI response with proper markdown."""
+        # Split content into sections
+        lines = content.strip().split('\n')
+        formatted_lines = []
+        question_count = 0
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                formatted_lines.append("")
+                continue
+                
+            # Format questions (lines ending with ?)
+            if line.endswith('?'):
+                question_count += 1
+                if question_count <= 7:  # First 5-7 questions get numbered
+                    formatted_lines.append(f"**{question_count}.** {line}")
+                else:
+                    formatted_lines.append(f"• {line}")
+            # Format action items or key points
+            elif line.startswith(('-', '*', '•')):
+                formatted_lines.append(f"• {line[1:].strip()}")
+            # Bold key frameworks and concepts
+            elif any(framework in line for framework in ['RICE', 'Jobs-to-be-Done', 'Growth Loop', 'TAM', 'CAC', 'LTV', 'PMF']):
+                # Bold the framework names
+                for framework in ['RICE', 'Jobs-to-be-Done', 'Growth Loop', 'TAM', 'CAC', 'LTV', 'PMF']:
+                    line = line.replace(framework, f"**{framework}**")
+                formatted_lines.append(line)
+            # Format section headers (lines that are short and don't end with punctuation)
+            elif len(line) < 50 and not line.endswith(('.', '!', '?', ':')):
+                formatted_lines.append(f"\n**{line}**")
+            else:
+                formatted_lines.append(line)
+        
+        # Add emoji header based on agent type
+        header_emoji = "🚀" if agent_type == "pm" else "💰"
+        formatted_content = '\n'.join(formatted_lines)
+        
+        # Add action item section if not present
+        if "next step" not in formatted_content.lower() and "action item" not in formatted_content.lower():
+            formatted_content += "\n\n**💡 Next Step:** Reflect on the above questions and share your thoughts on the most challenging one."
+        
+        return f"{header_emoji} **Response:**\n\n{formatted_content}"
 
     async def get_response(
         self,
@@ -105,7 +115,10 @@ Challenge assumptions like a real investor would.""",
             content = response.choices[0].message.content
             tokens = response.usage.total_tokens if response.usage else 0
 
-            return content, tokens
+            # Format the response with markdown
+            formatted_content = self.format_response(content, agent_type)
+
+            return formatted_content, tokens
 
         except Exception as e:
             logger.error(f"Error getting AI response: {e}")
