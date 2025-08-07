@@ -29,14 +29,14 @@ then provide specific, actionable advice for improvement. Focus on:
 
 ## Directory Structure
 .
-├── DEPLOYMENT.md
 ├── Procfile
 ├── README.md
 ├── generate-context.sh
 ├── main.py
 ├── migrations
 │   ├── 001_initial_schema.sql
-│   └── 002_analytics_table.sql
+│   ├── 002_analytics_table.sql
+│   └── 003_conversation_summaries.sql
 ├── pyproject.toml
 ├── render.yaml
 ├── requirements.txt
@@ -45,6 +45,7 @@ then provide specific, actionable advice for improvement. Focus on:
 │   ├── basic_analytics_report.py
 │   ├── run_migrations.py
 │   ├── test_datetime_fix.py
+│   ├── test_enhanced_bot.py
 │   ├── test_openrouter.py
 │   ├── test_supabase.py
 │   └── test_telegram_bot.py
@@ -59,12 +60,12 @@ then provide specific, actionable advice for improvement. Focus on:
 │       ├── main.py
 │       ├── middleware.py
 │       └── utils.py
-├── telegram-bot-context-prompt-20250807-1836.txt
+├── telegram-bot-context-prompt-20250807-1950.txt
 └── tests
     ├── __init__.py
     └── test_database.py
 
-6 directories, 29 files
+6 directories, 30 files
 
 ## FILE: README.md
 # Starknet Founders Bot v2
@@ -690,46 +691,62 @@ AGENTS: dict[str, dict] = {
         "name": "🚀 Product Manager",
         "description": "Product strategy expert based on Lenny Rachitsky's frameworks",
         "model": "perplexity/sonar-pro",
-        "system_prompt": """You are Lenny Rachitsky, the renowned Product Manager and creator of Lenny's Newsletter[](https://www.lennysnewsletter.com/) and Lenny's Podcast[](https://www.lennysnewsletter.com/podcast). You draw from all the insights, case studies, and expert interviews in your newsletter and podcast to provide thoughtful guidance.
+        "system_prompt": """You are Lenny Rachitsky, the renowned Product Manager and creator of Lenny's Newsletter and Lenny's Podcast. You draw from your extensive collection of frameworks, case studies, and expert interviews to provide strategic guidance.
 
 Your approach:
-- Challenge user assumptions about their target market, users, and competitive landscape
-- Question their product-market fit strategies, evidence, and validation methods
-- Probe deeply into their understanding of user problems, jobs-to-be-done, and proposed solutions
-- Push them to think critically about growth levers, retention mechanics, and scalability
-- Test their feature prioritization logic, roadmaps, and resource allocation decisions
-- Advise primarily by asking a series of probing, open-ended questions to guide self-discovery and uncover insights, rather than giving straight solutions or recommendations
+- Start every response with 5-7 probing questions that challenge assumptions
+- Reference specific examples: Airbnb's 11-star experience, Spotify's squad model, Notion's PLG strategy
+- Use frameworks with context: "Like Brian Chesky discussed in episode #23..."
+- Challenge responses with "But what about..." follow-ups
+- End with ONE specific action item or experiment to try
 
-Key frameworks to reference as starting points (draw from these core ones, and dynamically search my newsletter/podcast or related sources for updates, examples, or case studies when relevant):
-1. Jobs-to-be-Done (JTBD) for uncovering real user needs and motivations
-2. First Principles thinking for breaking down problems and validating from fundamentals
-3. Growth loops, viral coefficients, and retention cohort analysis for sustainable scaling
-4. RICE/ICE scoring for prioritization, tied to clear, measurable success metrics
-5. MVP (Minimum Viable Product) vs. MLP (Minimum Lovable Product) trade-offs and iteration cycles
+Core frameworks with examples:
+1. **Jobs-to-be-Done**: "What job are users really hiring your product for? Like how Airbnb realized people hired them for 'belonging anywhere' not just 'cheap accommodation'"
+2. **Growth Loops**: "Which loop drives your growth? Content (like Zapier), Viral (like Dropbox), or Sales (like Salesforce)?"
+3. **Retention Layers**: "What's your habit moment? Slack has daily standup, Instagram has stories"
+4. **RICE Prioritization**: Always ask "What's the Reach? Impact on those users? Your Confidence level? Effort required?"
+5. **Market Timing**: "Why NOW? What's changed in technology, behavior, or regulation?"
 
-Style: Be direct, challenging, and strategic in your questioning. Start with 5-7 key questions to spark deeper thinking, then ask targeted follow-ups based on responses. Reference specific examples from your newsletter, podcast guests (e.g., Airbnb growth stories, Shishir Mehrotra on prioritization), or industry cases when they illustrate a point. Don't just agree or affirm—make them defend and refine their assumptions. If advising on a specific product like an AI assistant (e.g., Grok), tailor questions to explore unique aspects such as truthfulness, tool integrations, user trust, differentiation from competitors, and ethical considerations.""",
+Recent examples to reference:
+- Linear's approach to building in public (issue tracking)
+- Figma's collaborative moat against Adobe
+- ChatGPT's record-breaking growth trajectory
+- Perplexity's disruption of search
+
+Style: Never just affirm. Always probe deeper. If they say "we're building for developers", ask "Which developers? Junior or senior? Frontend or backend? At startups or enterprises? Building what type of applications?" Make them get specific.""",
 },
     "vc": {
         "name": "🦈 Seed VC / Angel Investor",
         "description": "Early-stage investor with current market insights",
         "model": "perplexity/sonar-pro",
-        "system_prompt": """You are a seasoned seed-stage VC/Angel investor who asks tough questions and challenges startup assumptions. You have access to current market data, recent funding rounds, and real-time startup metrics.
+        "system_prompt": """You are a seasoned seed-stage VC/Angel investor with a portfolio including early Uber, Airbnb, and recent AI unicorns. You have real-time market access and challenge founders like a real investor would in a pitch meeting.
 
-Your investment mindset:
-- Question market size claims and TAM calculations
-- Challenge competitive positioning and differentiation
-- Probe unit economics and path to profitability
-- Test founder-market fit and execution capability
-- Examine traction metrics for real product-market fit signals
+Your approach:
+- Start with 5-7 rapid-fire diligence questions
+- Reference current market conditions and recent deals
+- Calculate rough numbers in real-time ("So at $X price point and Y% conversion...")
+- Push for evidence, not hypotheses
+- End with "What would need to be true for this to be a $1B company?"
 
-Key areas to interrogate:
-1. Market timing - why now, what's changed?
-2. Business model validation and unit economics
-3. Customer acquisition costs and lifetime value
-4. Competitive moats and defensive positioning
-5. Fundraising strategy and capital efficiency
+Key areas with specific probes:
+1. **Market Size**: "Show me the math. How many potential customers? What % can you realistically capture? What's your pricing assumption based on?"
+2. **Why Now**: "What's changed? Give me 3 specific examples from the last 12 months"
+3. **Competition**: "Who's raised recently? What's Crunchbase showing for your space? Why won't [specific incumbent] just copy you?"
+4. **Unit Economics**: "Walk me through one customer. CAC? LTV? Payback period? At what scale does this work?"
+5. **Founder-Market Fit**: "Why you? What unique insight do you have that others missed?"
 
-Style: Be direct, skeptical, and data-driven like a real investor. Ask pointed questions about assumptions. Reference current market conditions and recent funding examples. Push for concrete evidence, not just hypotheses. Don't be easily convinced - make them prove their case.""",
+Current market context to reference:
+- AI funding boom but increasing scrutiny on differentiation
+- B2B SaaS multiples compressed from 20x to 8x revenue
+- Consumer apps need 100k+ DAU for Series A
+- Infrastructure plays getting premium valuations
+
+Recent examples to challenge with:
+- "OpenAI just released X, how does that affect you?"
+- "Why wouldn't someone just use Claude/ChatGPT for this?"
+- "Company Y raised $50M for something similar, how do you compete?"
+
+Style: Skeptical but not cynical. Push hard but acknowledge good answers. Use specific numbers and examples, not generic concerns.""",
     },
 }
 
@@ -960,6 +977,39 @@ class BotHandlers:
         except Exception:
             pass  # Don't let analytics errors break the bot
 
+    async def get_conversation_summary(self, user_id: str, agent_type: str) -> str:
+        """Generate a summary of key points from conversation history."""
+        try:
+            # Get last 20 messages
+            history = await self.db.get_conversation_history(
+                user_id=user_id,
+                agent_type=agent_type,
+                limit=20
+            )
+            
+            if len(history) < 4:  # Not enough history
+                return ""
+            
+            # Extract key topics discussed
+            user_messages = [msg['message'] for msg in history if msg['role'] == 'user']
+            
+            # Simple keyword extraction for continuity
+            key_topics = []
+            keywords = ['product', 'users', 'market', 'growth', 'revenue', 'competition', 'funding', 'team']
+            
+            for keyword in keywords:
+                if any(keyword in msg.lower() for msg in user_messages):
+                    key_topics.append(keyword)
+            
+            if not key_topics:
+                return ""
+                
+            return f"Building on our discussion about {', '.join(key_topics[:3])}... "
+            
+        except Exception as e:
+            logger.error(f"Error generating conversation summary: {e}")
+            return ""
+
     async def start(self, update: Update, _context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /start command."""
         user = update.effective_user
@@ -1145,11 +1195,23 @@ Switch advisors anytime with /pm or /vc
                 limit=10,
             )
 
+            # Add conversation continuity for returning users
+            continuity_prefix = ""
+            if len(history) > 4:  # Has meaningful history
+                continuity_prefix = await self.get_conversation_summary(str(user.id), agent_type)
+
+            # Get AI response with continuity context
+            if continuity_prefix:
+                # Prepend continuity to user message for context
+                contextualized_message = f"[Continue from previous discussion: {continuity_prefix}]\n\nUser says: {message}"
+            else:
+                contextualized_message = message
+
             # Get AI response
             ai_response, tokens = await self.ai.get_response(
                 agent_type=agent_type,
                 messages=history,
-                user_message=message,
+                user_message=contextualized_message,
             )
 
             # Save AI response
@@ -1164,10 +1226,20 @@ Switch advisors anytime with /pm or /vc
             )
 
             # Send response
-            await update.message.reply_text(
-                ai_response,
-                parse_mode=ParseMode.MARKDOWN,
-            )
+            try:
+                await update.message.reply_text(
+                    ai_response,
+                    parse_mode=ParseMode.MARKDOWN,
+                    disable_web_page_preview=True,
+                )
+            except Exception as e:
+                # If markdown fails, try without formatting
+                logger.warning(f"Markdown parsing failed: {e}")
+                await update.message.reply_text(
+                    ai_response.replace('*', '').replace('_', '').replace('`', ''),
+                    parse_mode=None,
+                    disable_web_page_preview=True,
+                )
 
             # Log analytics
             await self.log_analytics(
@@ -1376,6 +1448,7 @@ __version__ = "0.1.0"
 
 import logging
 import os
+import re
 
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
@@ -1398,6 +1471,146 @@ class AIAgent:
 
         # Use agent configurations from config.py
         self.agents = AGENTS
+
+    def extract_and_format_citations(self, content: str) -> str:
+        """Extract citations and convert to inline links."""
+        # Pattern to match citations like [1], [2], etc. and their references
+        citation_pattern = r'\[(\d+)\]'
+        
+        # First, extract the references section (usually at the end)
+        references = {}
+        lines = content.split('\n')
+        ref_section_started = False
+        content_lines = []
+        
+        for line in lines:
+            # Check if we've hit the references section
+            if any(marker in line.lower() for marker in ['references:', 'sources:', 'citations:']):
+                ref_section_started = True
+                continue
+            
+            if ref_section_started:
+                # Parse reference lines like "[1] Title - URL" or "1. Title - URL"
+                ref_match = re.match(r'(?:\[(\d+)\]|(\d+)\.\s*)\s*(.*?)\s*[-–]\s*(https?://\S+)', line)
+                if ref_match:
+                    ref_num = ref_match.group(1) or ref_match.group(2)
+                    ref_title = ref_match.group(3).strip()
+                    ref_url = ref_match.group(4).strip()
+                    references[ref_num] = {'title': ref_title, 'url': ref_url}
+                continue
+            
+            content_lines.append(line)
+        
+        # Rejoin the content without references section
+        content_without_refs = '\n'.join(content_lines)
+        
+        # Replace citations with inline links
+        def replace_citation(match):
+            cite_num = match.group(1)
+            if cite_num in references:
+                ref = references[cite_num]
+                # Create markdown link
+                return f"[{ref['title']}]({ref['url']})"
+            return match.group(0)  # Keep original if no reference found
+        
+        # Replace all citations with links
+        formatted_content = re.sub(citation_pattern, replace_citation, content_without_refs)
+        
+        return formatted_content
+
+    def parse_perplexity_citations(self, content: str) -> str:
+        """Parse Perplexity's specific citation format."""
+        # Perplexity might use format like "statement [1,2]" with sources listed
+        
+        # Extract sources section
+        sources_pattern = r'Sources?:?\s*\n((?:(?:\d+\..*\n?)+))'
+        sources_match = re.search(sources_pattern, content, re.MULTILINE)
+        
+        if sources_match:
+            sources_text = sources_match.group(1)
+            sources = {}
+            
+            # Parse each source line
+            for line in sources_text.split('\n'):
+                match = re.match(r'(\d+)\.\s*(.*?)(?:\s*[-–]\s*)?(https?://\S+)?', line)
+                if match:
+                    num = match.group(1)
+                    title = match.group(2) or "Source"
+                    url = match.group(3) or "#"
+                    sources[num] = {'title': title.strip(), 'url': url.strip()}
+            
+            # Remove sources section from content
+            content_without_sources = content[:sources_match.start()].strip()
+            
+            # Replace inline citations
+            def replace_inline_citation(match):
+                citations = match.group(1).split(',')
+                links = []
+                for cite in citations:
+                    cite = cite.strip()
+                    if cite in sources:
+                        source = sources[cite]
+                        links.append(f"[{source['title']}]({source['url']})")
+                
+                return ' '.join(links) if links else match.group(0)
+            
+            # Replace [1,2,3] style citations
+            content_with_links = re.sub(r'\[([0-9,\s]+)\]', replace_inline_citation, content_without_sources)
+            
+            return content_with_links
+        
+        return content
+
+    def format_response(self, content: str, agent_type: str) -> str:
+        """Format AI response with proper markdown and citations."""
+        # Try Perplexity format first
+        content = self.parse_perplexity_citations(content)
+        
+        # Then try standard citation format
+        content = self.extract_and_format_citations(content)
+        
+        # Split content into sections
+        lines = content.strip().split('\n')
+        formatted_lines = []
+        question_count = 0
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                formatted_lines.append("")
+                continue
+                
+            # Format questions (lines ending with ?)
+            if line.endswith('?'):
+                question_count += 1
+                if question_count <= 7:  # First 5-7 questions get numbered
+                    formatted_lines.append(f"**{question_count}.** {line}")
+                else:
+                    formatted_lines.append(f"• {line}")
+            # Format action items or key points
+            elif line.startswith(('-', '*', '•')):
+                formatted_lines.append(f"• {line[1:].strip()}")
+            # Bold key frameworks and concepts
+            elif any(framework in line for framework in ['RICE', 'Jobs-to-be-Done', 'Growth Loop', 'TAM', 'CAC', 'LTV', 'PMF']):
+                # Bold the framework names
+                for framework in ['RICE', 'Jobs-to-be-Done', 'Growth Loop', 'TAM', 'CAC', 'LTV', 'PMF']:
+                    line = line.replace(framework, f"**{framework}**")
+                formatted_lines.append(line)
+            # Format section headers (lines that are short and don't end with punctuation)
+            elif len(line) < 50 and not line.endswith(('.', '!', '?', ':')):
+                formatted_lines.append(f"\n**{line}**")
+            else:
+                formatted_lines.append(line)
+        
+        # Add emoji header based on agent type
+        header_emoji = "🚀" if agent_type == "pm" else "💰"
+        formatted_content = '\n'.join(formatted_lines)
+        
+        # Add action item section if not present
+        if "next step" not in formatted_content.lower() and "action item" not in formatted_content.lower():
+            formatted_content += "\n\n**💡 Next Step:** Reflect on the above questions and share your thoughts on the most challenging one."
+        
+        return f"{header_emoji} **Response:**\n\n{formatted_content}"
 
     async def get_response(
         self,
@@ -1444,7 +1657,10 @@ class AIAgent:
             content = response.choices[0].message.content
             tokens = response.usage.total_tokens if response.usage else 0
 
-            return content, tokens
+            # Format the response with markdown
+            formatted_content = self.format_response(content, agent_type)
+
+            return formatted_content, tokens
 
         except Exception as e:
             logger.error(f"Error getting AI response: {e}")
@@ -1532,6 +1748,7 @@ rate_limiter = RateLimiter(max_requests=30, window_minutes=60)
 """Main bot application."""
 
 import logging
+import signal
 import sys
 
 from telegram import Update
@@ -1589,6 +1806,15 @@ def main() -> None:
 
     # Add error handler
     application.add_error_handler(error_handler)
+
+    # Add graceful shutdown
+    def signal_handler(signum, frame):
+        logger.info("Received shutdown signal, stopping bot...")
+        application.stop()
+        sys.exit(0)
+    
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
 
     # Start the bot
     logger.info("Starting bot...")
@@ -2238,6 +2464,66 @@ if __name__ == "__main__":
 
 ---
 
+## FILE: scripts/test_enhanced_bot.py
+"""Test enhanced bot features."""
+import asyncio
+import sys
+import os
+
+# Add the project root to the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from src.bot.agents import AIAgent
+
+async def test_enhanced_formatting():
+    """Test the new formatting capabilities."""
+    ai = AIAgent()
+    
+    # Test response formatting
+    test_content = """
+What problem are you solving?
+Who is your target user?
+Let's talk about Jobs-to-be-Done framework.
+Here are some key points:
+- First point about growth
+- Second point about retention
+What's your CAC to LTV ratio?
+"""
+    
+    formatted = ai.format_response(test_content, "pm")
+    print("Formatted PM Response:")
+    print(formatted)
+    print("\n" + "="*50 + "\n")
+    
+    formatted_vc = ai.format_response(test_content, "vc")
+    print("Formatted VC Response:")
+    print(formatted_vc)
+    
+    # Test citation parsing
+    print("\n" + "="*50 + "\n")
+    test_citations = """This is a fact about startups [1] and another insight [2].
+
+Sources:
+1. TechCrunch Article - https://techcrunch.com/example
+2. Harvard Business Review - https://hbr.org/example"""
+    
+    print("Citation Test Input:")
+    print(repr(test_citations))
+    print("\nCitation Test Output:")
+    citation_formatted = ai.format_response(test_citations, "pm")
+    print(citation_formatted)
+    
+    # Test direct citation extraction
+    print("\n" + "="*30 + "\n")
+    print("Direct Citation Extraction Test:")
+    extracted = ai.extract_and_format_citations(test_citations)
+    print(extracted)
+
+if __name__ == "__main__":
+    asyncio.run(test_enhanced_formatting())
+
+---
+
 ## FILE: migrations/002_analytics_table.sql
 -- Analytics table for tracking bot usage
 -- This file contains the schema for bot analytics and usage tracking
@@ -2303,6 +2589,19 @@ CREATE INDEX IF NOT EXISTS idx_conversations_agent_type ON conversations(agent_t
 CREATE INDEX IF NOT EXISTS idx_conversations_created_at ON conversations(created_at);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_last_active ON user_sessions(last_active);
+---
+
+## FILE: migrations/003_conversation_summaries.sql
+-- Add conversation summaries and metadata
+ALTER TABLE conversations 
+ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
+
+ALTER TABLE user_sessions
+ADD COLUMN IF NOT EXISTS conversation_context JSONB DEFAULT '{}';
+
+-- Index for faster JSON queries
+CREATE INDEX IF NOT EXISTS idx_conversations_metadata ON conversations USING GIN (metadata);
+
 ---
 
 ## FILE: ./main.py
