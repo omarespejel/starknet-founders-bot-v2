@@ -1,0 +1,19 @@
+services:
+  - type: worker
+    name: starknet-advisor-bot
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python -m src.bot.main"
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
