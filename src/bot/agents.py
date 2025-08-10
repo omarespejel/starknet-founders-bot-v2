@@ -161,28 +161,64 @@ class AIAgent:
 
         content = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", md_link_to_plain, content)
 
-        # Build a light, text-first structure: number questions, normalize bullets
-        lines = content.strip().split("\n")
+        # Normalize dashes and convert inline bullets following punctuation/colon into new lines
+        content = content.replace("—", "-").replace("–", "-")
+        content = re.sub(r"(?:(?<=^)|(?<=[.!?:]))\s*-\s+", "\n- ", content)
+
+        # Build a light, text-first structure: number questions, normalize bullets, handle headings
+        raw_lines = content.strip().split("\n")
+        lines: list[str] = []
+        for raw in raw_lines:
+            m = re.match(r"^\s*#{1,6}\s+(.*)$", raw)
+            if m:
+                title = m.group(1).strip()
+                if lines and lines[-1] != "":
+                    lines.append("")
+                lines.append(title)
+                lines.append("")
+            else:
+                lines.append(raw)
+
         output_lines: list[str] = []
         question_count = 0
+        in_bullet_block = False
 
         for raw in lines:
             line = raw.strip()
             if not line:
+                if output_lines and output_lines[-1] != "":
+                    output_lines.append("")
+                in_bullet_block = False
+                continue
+
+            # Reflow non-list long lines by splitting on sentence boundaries
+            if not line.startswith("- ") and len(line) > 160:
+                parts = re.split(r"(?<=[.!?])\s+(?=(\(|\"|[A-Z0-9]))", line)
+                for p in parts:
+                    if p:
+                        output_lines.append(p.strip())
                 output_lines.append("")
+                in_bullet_block = False
                 continue
 
             if line.endswith("?"):
                 question_count += 1
                 prefix = f"{question_count}. " if question_count <= 7 else "- "
                 output_lines.append(f"{prefix}{line}")
+                in_bullet_block = False
             elif line.startswith(("- ", "* ", "• ")):
+                if not in_bullet_block and output_lines and output_lines[-1] != "":
+                    output_lines.append("")
                 output_lines.append(f"- {line.lstrip('-*• ').strip()}")
+                in_bullet_block = True
             else:
                 output_lines.append(line)
+                in_bullet_block = False
 
         header_emoji = "🚀" if agent_type == "pm" else "💰"
+        # Collapse excessive blank lines to at most two and trim
         text = "\n".join(output_lines)
+        text = re.sub(r"\n{3,}", "\n\n", text).strip()
 
         if "next step" not in text.lower() and "action item" not in text.lower():
             text += "\n\nNext Step: Reflect on the above questions and share your thoughts on the most challenging one."
