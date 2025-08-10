@@ -99,3 +99,43 @@ def split_into_chunks(text: str, limit: int = 3900) -> list[str]:
         chunks.append(chunk)
         remaining = remaining[split_at:].lstrip("\n")
     return chunks
+
+
+def mdv2_bold(text: str) -> str:
+    """Wrap text in MarkdownV2 bold markers, escaping inner content only."""
+    return f"*{escape_md_v2(text)}*"
+
+
+def render_markdown_v2(content: str) -> str:
+    """Render a plain structured text into MarkdownV2 with selective bold.
+
+    Heuristics:
+    - Bold short section lines (not bullets or numbered, short length, no terminal punctuation)
+    - Escape all other lines fully
+    """
+    if content is None:
+        return ""
+    lines = content.splitlines()
+    rendered: list[str] = []
+    for raw in lines:
+        line = raw.rstrip()
+        stripped = line.strip()
+        if not stripped:
+            rendered.append("")
+            continue
+
+        is_bullet = stripped.startswith("- ")
+        is_numbered = bool(re.match(r"^\d+\.\s", stripped))
+        is_header = (
+            not is_bullet
+            and not is_numbered
+            and len(stripped) <= 60
+            and not stripped.endswith((".", "!", "?", ":"))
+        )
+
+        if is_header:
+            rendered.append(mdv2_bold(stripped))
+        else:
+            rendered.append(escape_md_v2(stripped))
+
+    return "\n".join(rendered)

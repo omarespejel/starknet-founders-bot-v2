@@ -11,7 +11,13 @@ from telegram.ext import ContextTypes
 from .agents import AIAgent
 from .config import AGENTS
 from .database import Database
-from .utils import rate_limiter, normalize_query, escape_md_v2, split_into_chunks
+from .utils import (
+    rate_limiter,
+    normalize_query,
+    escape_md_v2,
+    split_into_chunks,
+    render_markdown_v2,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -286,7 +292,7 @@ Switch advisors anytime with /pm or /vc
             )
 
             # Send response with MarkdownV2 + fallback
-            safe = escape_md_v2(ai_response)
+            safe = render_markdown_v2(ai_response)
             parts = split_into_chunks(safe, limit=3900)
             for part in parts:
                 try:
