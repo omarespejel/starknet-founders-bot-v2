@@ -199,7 +199,7 @@ class AIAgent:
 
             # Reflow non-list long lines by splitting on sentence boundaries
             if not line.startswith("- ") and len(line) > 160:
-                parts = re.split(r"(?<=[.!?])\s+(?=(\(|\"|[A-Z0-9]))", line)
+                parts = re.split(r"(?<=[.!?])\s+(?=(?:\(|\"|[A-Z0-9]))", line)
                 for p in parts:
                     if p:
                         output_lines.append(p.strip())
@@ -229,8 +229,23 @@ class AIAgent:
                 in_bullet_block = False
 
         header_emoji = "🚀" if agent_type == "pm" else "💰"
+        # Ensure extra spacing after complete sentences for readability
+        spaced_lines: list[str] = []
+        for idx, line in enumerate(output_lines):
+            spaced_lines.append(line)
+            if (
+                line
+                and not line.startswith("- ")
+                and not re.match(r"^\d+\.\s", line)
+                and line[-1] in ".?!"
+            ):
+                # If next line exists and is non-empty, insert a blank line
+                nxt = output_lines[idx + 1] if idx + 1 < len(output_lines) else ""
+                if nxt and nxt.strip() != "":
+                    spaced_lines.append("")
+
         # Collapse excessive blank lines to at most two and trim
-        text = "\n".join(output_lines)
+        text = "\n".join(spaced_lines)
         text = re.sub(r"\n{3,}", "\n\n", text).strip()
 
         if "next step" not in text.lower() and "action item" not in text.lower():
