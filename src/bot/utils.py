@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 from typing import Dict, List
+import re
 import logging
 
 logger = logging.getLogger(__name__)
@@ -44,3 +45,17 @@ class RateLimiter:
 
 # Global rate limiter instance
 rate_limiter = RateLimiter(max_requests=30, window_minutes=60)
+
+
+def normalize_query(text: str | None) -> str:
+    """Normalize a user query for analytics grouping and reduced PII.
+
+    - Trim and lowercase
+    - Collapse whitespace
+    - Truncate to 300 chars
+    """
+    if not text:
+        return ""
+    normalized = text.strip().lower()
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized[:300]

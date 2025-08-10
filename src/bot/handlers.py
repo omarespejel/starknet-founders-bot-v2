@@ -11,7 +11,7 @@ from telegram.ext import ContextTypes
 from .agents import AIAgent
 from .config import AGENTS
 from .database import Database
-from .utils import rate_limiter
+from .utils import rate_limiter, normalize_query
 
 logger = logging.getLogger(__name__)
 
@@ -312,6 +312,7 @@ Switch advisors anytime with /pm or /vc
                     "message_length": len(message),
                     "response_length": len(ai_response),
                     "tokens_used": tokens,
+                    "normalized_query": normalize_query(message),
                 },
             )
 
