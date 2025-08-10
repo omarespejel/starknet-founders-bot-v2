@@ -36,13 +36,21 @@ then provide specific, actionable advice for improvement. Focus on:
 ├── migrations
 │   ├── 001_initial_schema.sql
 │   ├── 002_analytics_table.sql
-│   └── 003_conversation_summaries.sql
+│   ├── 003_conversation_summaries.sql
+│   ├── 004_user_queries_view.sql
+│   └── 005_user_qna_view.sql
 ├── pyproject.toml
 ├── render.yaml
+├── reports
+│   ├── user_qna_20250810_2250.csv
+│   ├── user_qna_20250810_2252.csv
+│   └── user_queries_20250810_2246.csv
 ├── requirements.txt
 ├── scripts
 │   ├── analytics_report.py
 │   ├── basic_analytics_report.py
+│   ├── export_user_qna.py
+│   ├── export_user_queries.py
 │   ├── run_migrations.py
 │   ├── test_datetime_fix.py
 │   ├── test_enhanced_bot.py
@@ -60,12 +68,12 @@ then provide specific, actionable advice for improvement. Focus on:
 │       ├── main.py
 │       ├── middleware.py
 │       └── utils.py
-├── telegram-bot-context-prompt-20250810-2224.txt
+├── telegram-bot-context-prompt-20250810-2312.txt
 └── tests
     ├── __init__.py
     └── test_database.py
 
-6 directories, 30 files
+7 directories, 37 files
 
 ## FILE: README.md
 # Starknet Founders Bot v2
@@ -406,6 +414,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Reports and exports
+reports/
+
 # Runtime data
 pids
 *.pid
@@ -694,9 +705,8 @@ AGENTS: dict[str, dict] = {
         "system_prompt": """You are Lenny Rachitsky, the renowned Product Manager and creator of Lenny's Newsletter and Lenny's Podcast. You draw from your extensive collection of frameworks, case studies, and expert interviews to provide strategic guidance.
 
 Your approach:
-- Start every response with 2-3 probing questions that challenge assumptions
-- Reference maximum 2 specific examples: Airbnb's 11-star experience, Spotify's squad model, Notion's PLG strategy
-- Use frameworks with context: "Like Brian Chesky discussed..."
+- Start every response with 1-2 probing questions that challenge assumptions
+- Reference maximum 1 specific examples: Airbnb's 11-star experience, Spotify's squad model, Notion's PLG strategy
 - Challenge responses with "But what about..." follow-ups
 - End with ONE specific action item or experiment to try
 
@@ -713,13 +723,7 @@ Recent examples to reference:
 - ChatGPT's record-breaking growth trajectory
 - Perplexity's disruption of search
 
-Style: Never just affirm. Always probe deeper. If they say "we're building for developers", ask "Which developers? Junior or senior? Frontend or backend? At startups or enterprises? Building what type of applications?" Make them get specific.
-
-Important formatting rules:
-- Never use tables or structured data formats
-- Avoid numbered references like [1], [2], [3] in responses
-- Keep responses conversational and question-focused
-"""
+Style: Never just affirm. Always probe deeper. If they say "we're building for developers", ask "Which developers? Junior or senior? Frontend or backend? At startups or enterprises? Building what type of applications?" Make them get specific.""",
 },
     "vc": {
         "name": "🦈 Seed VC / Angel Investor",
@@ -728,7 +732,7 @@ Important formatting rules:
         "system_prompt": """You are a seasoned seed-stage VC/Angel investor with a portfolio including early Uber, Airbnb, and recent AI unicorns. You have real-time market access and challenge founders like a real investor would in a pitch meeting.
 
 Your approach:
-- Start with 2-3 rapid-fire diligence questions
+- Start with 1-2 rapid-fire diligence questions
 - Reference current market conditions and recent deals
 - Calculate rough numbers in real-time ("So at $X price point and Y% conversion...")
 - Push for evidence, not hypotheses
@@ -752,13 +756,7 @@ Recent examples to challenge with:
 - "Why wouldn't someone just use Claude/ChatGPT for this?"
 - "Company Y raised $50M for something similar, how do you compete?"
 
-Style: Skeptical but not cynical. Push hard but acknowledge good answers. Use specific numbers and examples, not generic concerns.
-
-Important formatting rules:
-- Never use tables or structured data formats
-- Avoid numbered references like [1], [2], [3] in responses
-- Keep responses conversational and investor-focused
-"""
+Style: Skeptical but not cynical. Push hard but acknowledge good answers. Use specific numbers and examples, not generic concerns.""",
     },
 }
 
@@ -767,9 +765,8 @@ RATE_LIMIT_MESSAGES = 30  # messages per user per hour
 RATE_LIMIT_WINDOW = 3600  # 1 hour in seconds
 
 # Message settings
-MAX_MESSAGE_LENGTH = 3000
+MAX_MESSAGE_LENGTH = 2000
 MAX_HISTORY_MESSAGES = 10  # How many previous messages to include in context
-
 ---
 
 ## FILE: src/bot/database.py
@@ -964,7 +961,7 @@ from telegram.ext import ContextTypes
 from .agents import AIAgent
 from .config import AGENTS
 from .database import Database
-from .utils import rate_limiter
+from .utils import rate_limiter, normalize_query
 
 logger = logging.getLogger(__name__)
 
@@ -1265,6 +1262,7 @@ Switch advisors anytime with /pm or /vc
                     "message_length": len(message),
                     "response_length": len(ai_response),
                     "tokens_used": tokens,
+                    "normalized_query": normalize_query(message),
                 },
             )
 
@@ -1753,6 +1751,7 @@ class AIAgent:
 
 from datetime import datetime, timedelta
 from typing import Dict, List
+import re
 import logging
 
 logger = logging.getLogger(__name__)
@@ -1795,6 +1794,20 @@ class RateLimiter:
 
 # Global rate limiter instance
 rate_limiter = RateLimiter(max_requests=30, window_minutes=60)
+
+
+def normalize_query(text: str | None) -> str:
+    """Normalize a user query for analytics grouping and reduced PII.
+
+    - Trim and lowercase
+    - Collapse whitespace
+    - Truncate to 300 chars
+    """
+    if not text:
+        return ""
+    normalized = text.strip().lower()
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized[:300]
 
 ---
 
@@ -2174,6 +2187,298 @@ async def test_supabase_connection():
 
 if __name__ == "__main__":
     asyncio.run(test_supabase_connection())
+
+---
+
+## FILE: scripts/export_user_queries.py
+"""Export all user queries to a CSV file.
+
+This script queries the read-friendly `view_user_queries` if present,
+falling back to the `conversations` table. It paginates through results
+to avoid memory blowups and writes a timestamped CSV under `reports/`.
+"""
+
+from __future__ import annotations
+
+import csv
+import os
+from datetime import datetime
+from pathlib import Path
+from typing import Iterable, List, Dict
+
+from dotenv import load_dotenv
+from supabase import Client, create_client
+
+
+load_dotenv()
+
+
+def _init_client() -> Client:
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_KEY")
+    if not url or not key:
+        raise RuntimeError("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY in environment")
+    return create_client(url, key)
+
+
+def _ensure_reports_dir() -> Path:
+    reports = Path(__file__).resolve().parents[1] / "reports"
+    reports.mkdir(parents=True, exist_ok=True)
+    return reports
+
+
+def _fetch_in_pages(client: Client, use_view: bool, page_size: int = 2000) -> Iterable[List[Dict]]:
+    """Yield pages of rows from the view/table ordered by created_at asc.
+
+    Uses keyset pagination on `created_at` to be robust to large datasets.
+    """
+    last_created_at: str | None = None
+    table_name = "view_user_queries" if use_view else "conversations"
+
+    while True:
+        query = (
+            client.table(table_name)
+            .select(
+                "id,user_id,username,first_name,agent_type,"
+                + ("query" if use_view else "message")
+                + ",tokens_used,created_at"
+            )
+        )
+
+        # Filter to user role if reading raw table
+        if not use_view:
+            query = query.eq("role", "user")
+
+        if last_created_at is not None:
+            query = query.gt("created_at", last_created_at)
+
+        query = query.order("created_at", desc=False).limit(page_size)
+        res = query.execute()
+        rows: List[Dict] = res.data or []
+        if not rows:
+            break
+
+        last_created_at = rows[-1]["created_at"]
+        yield rows
+
+
+def export_user_queries() -> Path:
+    client = _init_client()
+
+    # Detect if the view exists by attempting a lightweight select
+    use_view = True
+    try:
+        client.table("view_user_queries").select("id").limit(1).execute()
+    except Exception:
+        use_view = False
+
+    reports_dir = _ensure_reports_dir()
+    ts = datetime.now().strftime("%Y%m%d_%H%M")
+    out_path = reports_dir / f"user_queries_{ts}.csv"
+
+    headers = [
+        "user_id",
+        "username",
+        "first_name",
+        "agent_type",
+        "query",
+        "tokens_used",
+        "created_at",
+    ]
+
+    with out_path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(headers)
+        for page in _fetch_in_pages(client, use_view=use_view):
+            for row in page:
+                writer.writerow(
+                    [
+                        row.get("user_id", ""),
+                        row.get("username", ""),
+                        row.get("first_name", ""),
+                        row.get("agent_type", ""),
+                        row.get("query", row.get("message", "")),
+                        row.get("tokens_used", 0),
+                        row.get("created_at", ""),
+                    ]
+                )
+
+    return out_path
+
+
+if __name__ == "__main__":
+    path = export_user_queries()
+    print(f"✅ Exported user queries to: {path}")
+
+
+
+---
+
+## FILE: scripts/export_user_qna.py
+"""Export user queries alongside the bot's next answer to a CSV.
+
+This script reads from `view_user_qna` (preferred) and falls back to
+joining `conversations` if the view does not exist.
+"""
+
+from __future__ import annotations
+
+import csv
+import os
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Iterable, List
+
+from dotenv import load_dotenv
+from supabase import Client, create_client
+
+load_dotenv()
+
+
+def _init_client() -> Client:
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_KEY")
+    if not url or not key:
+        raise RuntimeError("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY in environment")
+    return create_client(url, key)
+
+
+def _ensure_reports_dir() -> Path:
+    reports = Path(__file__).resolve().parents[1] / "reports"
+    reports.mkdir(parents=True, exist_ok=True)
+    return reports
+
+
+def _fetch_qna_pages(client: Client, use_view: bool, page_size: int = 1500) -> Iterable[List[Dict]]:
+    last_created_at: str | None = None
+
+    if use_view:
+        table = "view_user_qna"
+        select = (
+            "user_msg_id,user_id,username,first_name,agent_type," \
+            "user_query,user_tokens,user_created_at,assistant_msg_id," \
+            "assistant_response,assistant_tokens,assistant_created_at"
+        )
+        while True:
+            q = (
+                client.table(table)
+                .select(select)
+            )
+            if last_created_at is not None:
+                q = q.gt("user_created_at", last_created_at)
+            q = q.order("user_created_at", desc=False).limit(page_size)
+            res = q.execute()
+            rows: List[Dict] = res.data or []
+            if not rows:
+                break
+            last_created_at = rows[-1]["user_created_at"]
+            yield rows
+    else:
+        # Raw fallback: fetch user messages then look ahead for next assistant msg per user/agent
+        # Note: less efficient; the view is recommended.
+        while True:
+            q = (
+                client.table("conversations")
+                .select("*")
+                .eq("role", "user")
+            )
+            if last_created_at is not None:
+                q = q.gt("created_at", last_created_at)
+            q = q.order("created_at", desc=False).limit(page_size)
+            res = q.execute()
+            users: List[Dict] = res.data or []
+            if not users:
+                break
+            last_created_at = users[-1]["created_at"]
+
+            batch: List[Dict] = []
+            for u in users:
+                # Find next assistant response for same user/agent after this message
+                resp = (
+                    client.table("conversations")
+                    .select("id,message,tokens_used,created_at")
+                    .eq("user_id", u["user_id"])\
+                    .eq("agent_type", u["agent_type"])\
+                    .eq("role", "assistant")\
+                    .gt("created_at", u["created_at"])\
+                    .order("created_at", desc=False)\
+                    .limit(1)\
+                    .execute()
+                )
+                a = resp.data[0] if resp.data else None
+                batch.append(
+                    {
+                        "user_msg_id": u["id"],
+                        "user_id": u.get("user_id"),
+                        "username": u.get("username"),
+                        "first_name": u.get("first_name"),
+                        "agent_type": u.get("agent_type"),
+                        "user_query": u.get("message", ""),
+                        "user_tokens": u.get("tokens_used", 0),
+                        "user_created_at": u.get("created_at"),
+                        "assistant_msg_id": a.get("id") if a else None,
+                        "assistant_response": a.get("message") if a else None,
+                        "assistant_tokens": a.get("tokens_used") if a else None,
+                        "assistant_created_at": a.get("created_at") if a else None,
+                    }
+                )
+            yield batch
+
+
+def export_user_qna() -> Path:
+    client = _init_client()
+    # Detect view
+    use_view = True
+    try:
+        client.table("view_user_qna").select("user_msg_id").limit(1).execute()
+    except Exception:
+        use_view = False
+
+    reports_dir = _ensure_reports_dir()
+    ts = datetime.now().strftime("%Y%m%d_%H%M")
+    out_path = reports_dir / f"user_qna_{ts}.csv"
+
+    headers = [
+        "user_id",
+        "username",
+        "first_name",
+        "agent_type",
+        "user_query",
+        "assistant_response",
+        "user_tokens",
+        "assistant_tokens",
+        "user_created_at",
+        "assistant_created_at",
+    ]
+
+    with out_path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(headers)
+        for page in _fetch_qna_pages(client, use_view=use_view):
+            for row in page:
+                writer.writerow(
+                    [
+                        row.get("user_id", ""),
+                        row.get("username", ""),
+                        row.get("first_name", ""),
+                        row.get("agent_type", ""),
+                        row.get("user_query", ""),
+                        row.get("assistant_response", ""),
+                        row.get("user_tokens", 0),
+                        row.get("assistant_tokens", 0),
+                        row.get("user_created_at", ""),
+                        row.get("assistant_created_at", ""),
+                    ]
+                )
+
+    return out_path
+
+
+if __name__ == "__main__":
+    path = export_user_qna()
+    print(f"✅ Exported user QnA to: {path}")
+
+
 
 ---
 
@@ -2591,6 +2896,65 @@ Sources:
 
 if __name__ == "__main__":
     asyncio.run(test_enhanced_formatting())
+
+---
+
+## FILE: migrations/004_user_queries_view.sql
+-- Read-friendly view for exporting user queries
+-- Creates a view that selects only user-side messages with useful derived fields
+
+CREATE OR REPLACE VIEW view_user_queries AS
+SELECT
+    c.id,
+    c.user_id,
+    c.username,
+    c.first_name,
+    c.agent_type,
+    c.message AS query,
+    c.tokens_used,
+    c.created_at,
+    length(c.message) AS message_length,
+    date_trunc('day', c.created_at) AS day,
+    date_trunc('hour', c.created_at) AS hour
+FROM conversations c
+WHERE c.role = 'user';
+
+-- Optional: if you need a materialized view for very large datasets, create it instead
+-- and remember to REFRESH MATERIALIZED VIEW periodically.
+
+
+---
+
+## FILE: migrations/005_user_qna_view.sql
+-- View that pairs each user message with the immediate next assistant response
+
+CREATE OR REPLACE VIEW view_user_qna AS
+WITH ordered AS (
+    SELECT
+        c.*,
+        lead(c.role) OVER (PARTITION BY c.user_id, c.agent_type ORDER BY c.created_at) AS next_role,
+        lead(c.id) OVER (PARTITION BY c.user_id, c.agent_type ORDER BY c.created_at) AS assistant_msg_id,
+        lead(c.message) OVER (PARTITION BY c.user_id, c.agent_type ORDER BY c.created_at) AS assistant_response,
+        lead(c.tokens_used) OVER (PARTITION BY c.user_id, c.agent_type ORDER BY c.created_at) AS assistant_tokens,
+        lead(c.created_at) OVER (PARTITION BY c.user_id, c.agent_type ORDER BY c.created_at) AS assistant_created_at
+    FROM conversations c
+)
+SELECT
+    id AS user_msg_id,
+    user_id,
+    username,
+    first_name,
+    agent_type,
+    message AS user_query,
+    tokens_used AS user_tokens,
+    created_at AS user_created_at,
+    assistant_msg_id,
+    assistant_response,
+    assistant_tokens,
+    assistant_created_at
+FROM ordered
+WHERE role = 'user' AND next_role = 'assistant';
+
 
 ---
 

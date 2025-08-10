@@ -59,3 +59,43 @@ def normalize_query(text: str | None) -> str:
     normalized = text.strip().lower()
     normalized = re.sub(r"\s+", " ", normalized)
     return normalized[:300]
+
+
+def escape_md_v2(text: str) -> str:
+    """Escape all special characters for Telegram MarkdownV2.
+
+    Must escape: _ * [ ] ( ) ~ ` > # + - = | { } . ! and backslash itself.
+    """
+    if text is None:
+        return ""
+    # Escape backslash first
+    escaped = text.replace("\\", "\\\\")
+    specials = r"_*[]()~`>#+-=|{}.!"
+    result_chars: list[str] = []
+    for ch in escaped:
+        if ch in specials:
+            result_chars.append("\\" + ch)
+        else:
+            result_chars.append(ch)
+    return "".join(result_chars)
+
+
+def split_into_chunks(text: str, limit: int = 3900) -> list[str]:
+    """Split text into chunks under Telegram's 4096 char limit.
+
+    Attempts to split on newline boundaries, falling back to hard split.
+    """
+    chunks: list[str] = []
+    remaining = text
+    while remaining:
+        if len(remaining) <= limit:
+            chunks.append(remaining)
+            break
+        # Try to split at last newline within limit
+        split_at = remaining.rfind("\n", 0, limit)
+        if split_at == -1 or split_at < limit * 0.5:
+            split_at = limit
+        chunk = remaining[:split_at]
+        chunks.append(chunk)
+        remaining = remaining[split_at:].lstrip("\n")
+    return chunks

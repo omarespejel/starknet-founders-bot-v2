@@ -139,71 +139,55 @@ class AIAgent:
         return content.strip()
 
     def format_response(self, content: str, agent_type: str) -> str:
-        """Format AI response with HTML formatting for better reliability."""
-        # Debug logging to monitor citation formats
+        """Format AI response into plain, predictable text suitable for MarkdownV2 escaping.
+
+        We avoid emitting raw HTML or complex Markdown. The caller will escape
+        with MarkdownV2 and handle minimal styling.
+        """
         logger.debug(f"Raw content before citation parsing: {content[:500]}")
-        
-        # First clean any numbered references like [1], [2], [1][3]
+
+        # Clean numbered references like [1] and inline chains [1][2]
         content = self.clean_references(content)
-        
-        # Try Perplexity format first
+
+        # Convert Perplexity/standard citations into inline plain URLs/text
         content = self.parse_perplexity_citations(content)
-        
-        # Then try standard citation format
         content = self.extract_and_format_citations(content)
-        
-        # Convert markdown links to HTML (from citation parsing)
-        content = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', content)
-        
-        # Final cleanup of any remaining references that might have been added
-        content = self.clean_references(content)
-        
-        # Log if citations were found and processed
-        if '<a href=' in content:
-            logger.debug("Citations detected and processed in response")
-        
-        # Split content into sections
-        lines = content.strip().split('\n')
-        formatted_lines = []
+
+        # Remove remaining markdown links to just "title - url" plain text
+        def md_link_to_plain(match: re.Match[str]) -> str:
+            title = match.group(1)
+            url = match.group(2)
+            return f"{title} - {url}"
+
+        content = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", md_link_to_plain, content)
+
+        # Build a light, text-first structure: number questions, normalize bullets
+        lines = content.strip().split("\n")
+        output_lines: list[str] = []
         question_count = 0
-        
-        for line in lines:
-            line = line.strip()
+
+        for raw in lines:
+            line = raw.strip()
             if not line:
-                formatted_lines.append("")
+                output_lines.append("")
                 continue
-                
-            # Format questions (lines ending with ?)
-            if line.endswith('?'):
+
+            if line.endswith("?"):
                 question_count += 1
-                if question_count <= 7:  # First 5-7 questions get numbered
-                    formatted_lines.append(f"<b>{question_count}.</b> {line}")
-                else:
-                    formatted_lines.append(f"• {line}")
-            # Format action items or key points
-            elif line.startswith(('-', '*', '•')):
-                formatted_lines.append(f"• {line[1:].strip()}")
-            # Bold key frameworks and concepts
-            elif any(framework in line for framework in ['RICE', 'Jobs-to-be-Done', 'Growth Loop', 'TAM', 'CAC', 'LTV', 'PMF']):
-                # Bold the framework names
-                for framework in ['RICE', 'Jobs-to-be-Done', 'Growth Loop', 'TAM', 'CAC', 'LTV', 'PMF']:
-                    line = line.replace(framework, f"<b>{framework}</b>")
-                formatted_lines.append(line)
-            # Format section headers (lines that are short and don't end with punctuation)
-            elif len(line) < 50 and not line.endswith(('.', '!', '?', ':')):
-                formatted_lines.append(f"\n<b>{line}</b>")
+                prefix = f"{question_count}. " if question_count <= 7 else "- "
+                output_lines.append(f"{prefix}{line}")
+            elif line.startswith(("- ", "* ", "• ")):
+                output_lines.append(f"- {line.lstrip('-*• ').strip()}")
             else:
-                formatted_lines.append(line)
-        
-        # Add emoji header based on agent type
+                output_lines.append(line)
+
         header_emoji = "🚀" if agent_type == "pm" else "💰"
-        formatted_content = '\n'.join(formatted_lines)
-        
-        # Add action item section if not present
-        if "next step" not in formatted_content.lower() and "action item" not in formatted_content.lower():
-            formatted_content += "\n\n<b>💡 Next Step:</b> Reflect on the above questions and share your thoughts on the most challenging one."
-        
-        return f"{header_emoji} <b>Response:</b>\n\n{formatted_content}"
+        text = "\n".join(output_lines)
+
+        if "next step" not in text.lower() and "action item" not in text.lower():
+            text += "\n\nNext Step: Reflect on the above questions and share your thoughts on the most challenging one."
+
+        return f"{header_emoji} Response\n\n{text}"
 
     async def get_response(
         self,

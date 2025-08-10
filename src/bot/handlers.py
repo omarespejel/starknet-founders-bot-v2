@@ -11,7 +11,7 @@ from telegram.ext import ContextTypes
 from .agents import AIAgent
 from .config import AGENTS
 from .database import Database
-from .utils import rate_limiter, normalize_query
+from .utils import rate_limiter, normalize_query, escape_md_v2, split_into_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -285,23 +285,24 @@ Switch advisors anytime with /pm or /vc
                 tokens_used=tokens,
             )
 
-            # Send response
-            try:
-                await update.message.reply_text(
-                    ai_response,
-                    parse_mode=ParseMode.HTML,
-                    disable_web_page_preview=True,
-                )
-            except Exception as e:
-                # If HTML fails, try without formatting
-                logger.warning(f"HTML parsing failed: {e}")
-                # Strip HTML tags for plain text fallback
-                plain_text = re.sub(r'<[^>]+>', '', ai_response)
-                await update.message.reply_text(
-                    plain_text,
-                    parse_mode=None,
-                    disable_web_page_preview=True,
-                )
+            # Send response with MarkdownV2 + fallback
+            safe = escape_md_v2(ai_response)
+            parts = split_into_chunks(safe, limit=3900)
+            for part in parts:
+                try:
+                    await update.message.reply_text(
+                        part,
+                        parse_mode=ParseMode.MARKDOWN_V2,
+                        disable_web_page_preview=True,
+                    )
+                except Exception as e:
+                    logger.warning(f"MarkdownV2 parsing failed: {e}")
+                    # Plain-text fallback: remove escapes
+                    plain = part.replace("\\", "")
+                    await update.message.reply_text(
+                        plain,
+                        disable_web_page_preview=True,
+                    )
 
             # Log analytics
             await self.log_analytics(
