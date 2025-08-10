@@ -161,6 +161,9 @@ class AIAgent:
 
         content = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", md_link_to_plain, content)
 
+        # Promote inline markdown headings like " ... ### Title" to section breaks
+        content = re.sub(r"\s#{2,6}\s+([^\n]+)", r"\n\n\1\n\n", content)
+
         # Convert separators like '---' or '___' to blank lines
         content = re.sub(r"-{3,}|_{3,}", "\n\n", content)
 
