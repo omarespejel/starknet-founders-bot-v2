@@ -161,8 +161,8 @@ class AIAgent:
 
         content = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", md_link_to_plain, content)
 
-        # Promote inline markdown headings like " ... ### Title" to section breaks
-        content = re.sub(r"\s#{2,6}\s+([^\n]+)", r"\n\n\1\n\n", content)
+        # Ensure headings like '### Title' start a new block with two blank lines before
+        content = re.sub(r"(?<!\n)\s*###\s+", "\n\n### ", content)
 
         # Convert separators like '---' or '___' to blank lines
         content = re.sub(r"-{3,}|_{3,}", "\n\n", content)
@@ -170,6 +170,12 @@ class AIAgent:
         # Normalize dashes and convert inline bullets following punctuation/colon into new lines
         content = content.replace("—", "-").replace("–", "-")
         content = re.sub(r"(?:(?<=^)|(?<=[.!?:]))\s*-\s+", "\n- ", content)
+
+        # If a colon precedes a list, add two newlines before the first bullet
+        content = re.sub(r":\s*-\s+", ":\n\n- ", content)
+
+        # Within lines that chain multiple bullets with spaces, split them into separate lines
+        content = re.sub(r"\s-\s+(?=[A-Za-z(])", "\n- ", content)
 
         # Remove stray emphasis markers that leak through from the model
         content = content.replace("*", "").replace("_", "").replace("`", "")
