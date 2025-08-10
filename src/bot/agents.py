@@ -161,9 +161,15 @@ class AIAgent:
 
         content = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", md_link_to_plain, content)
 
+        # Convert separators like '---' or '___' to blank lines
+        content = re.sub(r"-{3,}|_{3,}", "\n\n", content)
+
         # Normalize dashes and convert inline bullets following punctuation/colon into new lines
         content = content.replace("—", "-").replace("–", "-")
         content = re.sub(r"(?:(?<=^)|(?<=[.!?:]))\s*-\s+", "\n- ", content)
+
+        # Remove stray emphasis markers that leak through from the model
+        content = content.replace("*", "").replace("_", "").replace("`", "")
 
         # Build a light, text-first structure: number questions, normalize bullets, handle headings
         raw_lines = content.strip().split("\n")
@@ -201,10 +207,17 @@ class AIAgent:
                 in_bullet_block = False
                 continue
 
+            # Remove double prefixes like '1. - '
+            line = re.sub(r"^(\d+\.\s*)-\s*", r"\1", line)
+
             if line.endswith("?"):
                 question_count += 1
-                prefix = f"{question_count}. " if question_count <= 7 else "- "
-                output_lines.append(f"{prefix}{line}")
+                # If already numbered like '3. ...', keep as-is to avoid double numbering
+                if re.match(r"^\d+\.\s", line):
+                    output_lines.append(line)
+                else:
+                    prefix = f"{question_count}. " if question_count <= 7 else "- "
+                    output_lines.append(f"{prefix}{line}")
                 in_bullet_block = False
             elif line.startswith(("- ", "* ", "• ")):
                 if not in_bullet_block and output_lines and output_lines[-1] != "":
