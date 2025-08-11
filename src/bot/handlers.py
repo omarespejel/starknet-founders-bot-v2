@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatAction, ParseMode
+from telegramify_markdown import telegramify
 from telegram.ext import ContextTypes
 
 from .agents import AIAgent
@@ -292,8 +293,8 @@ Switch advisors anytime with /pm or /vc
             )
 
             # Send response with MarkdownV2 + fallback
-            safe = render_markdown_v2(ai_response)
-            parts = split_into_chunks(safe, limit=3900)
+            converted = telegramify(ai_response, version="2", escape=True)
+            parts = split_into_chunks(converted, limit=3900)
             for part in parts:
                 try:
                     await update.message.reply_text(
