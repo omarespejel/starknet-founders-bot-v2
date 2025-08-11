@@ -81,6 +81,8 @@ jiter==0.10.0
     # via openai
 matplotlib-inline==0.1.7
     # via ipython
+mistletoe==1.4.0
+    # via telegramify-markdown
 multidict==6.6.3
     # via
     #   aiohttp
@@ -165,6 +167,8 @@ supabase==2.18.0
     # via telegram-ai-bot
 supafunc==0.10.1
     # via supabase
+telegramify-markdown==0.5.1
+    # via telegram-ai-bot
 tqdm==4.67.1
     # via openai
 traitlets==5.14.3
