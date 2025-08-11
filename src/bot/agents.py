@@ -252,6 +252,10 @@ class AIAgent:
         # If a colon precedes a list, add two newlines before the first bullet
         content = re.sub(r":\s*-\s+", ":\n\n- ", content)
 
+        # Add vertical space after any colon not part of a URL scheme and not already followed by a newline
+        # Avoid matching 'https://', 'http://', 'ipfs://', etc.
+        content = re.sub(r":(?!//)(?!\s*\n)\s*", ":\n\n", content)
+
         # Within lines that chain multiple bullets with spaces, split them into separate lines
         content = re.sub(r"\s-\s+(?=[A-Za-z(])", "\n- ", content)
 
