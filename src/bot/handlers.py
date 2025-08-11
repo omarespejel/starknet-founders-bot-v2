@@ -293,7 +293,7 @@ Switch advisors anytime with /pm or /vc
             )
 
             # Send response with MarkdownV2 + fallback
-            converted = telegramify(ai_response)
+            converted = await telegramify(ai_response)
             parts = split_into_chunks(converted, limit=3900)
             for part in parts:
                 try:
