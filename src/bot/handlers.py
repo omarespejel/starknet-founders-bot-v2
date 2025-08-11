@@ -6,7 +6,6 @@ from datetime import UTC, datetime
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatAction, ParseMode
-from telegramify_markdown import telegramify
 from telegram.ext import ContextTypes
 
 from .agents import AIAgent
@@ -296,37 +295,20 @@ Switch advisors anytime with /pm or /vc
             # Strip Mermaid code blocks proactively to avoid optional dependency warnings
             ai_response_sanitized = re.sub(r"```mermaid[\s\S]*?```", "[Mermaid diagram omitted]", ai_response)
 
-            # Convert to Telegram MarkdownV2 safely; telegramify 0.5.x returns a string
-            converted_obj = await telegramify(ai_response_sanitized)
-
-            # Ensure we have a plain string for chunking
-            if isinstance(converted_obj, str):
-                converted = converted_obj
-            else:
-                try:
-                    converted = str(converted_obj)
-                except Exception:
-                    try:
-                        converted = "\n".join([str(x) for x in converted_obj])
-                    except Exception:
-                        converted = "Sorry, failed to format the response. Showing plain text:\n\n" + str(ai_response_sanitized)
-
-            parts = split_into_chunks(converted, limit=3900)
+            # Use strict MarkdownV2 escaping for final output (stable path)
+            safe = escape_md_v2(ai_response_sanitized)
+            parts = split_into_chunks(safe, limit=3900)
             for part in parts:
                 try:
                     await update.message.reply_text(
-                        part if isinstance(part, str) else str(part),
+                        part,
                         parse_mode=ParseMode.MARKDOWN_V2,
                         disable_web_page_preview=True,
                     )
                 except Exception as e:
                     logger.warning(f"MarkdownV2 parsing failed: {e}")
-                    # Plain-text fallback: remove escapes and coerce to str
-                    try:
-                        txt = part if isinstance(part, str) else str(part)
-                        plain = txt.replace("\\", "")
-                    except Exception:
-                        plain = "Sorry, formatting failed. Here is a plain-text version:\n\n" + str(part)
+                    # Plain-text fallback: remove escapes
+                    plain = part.replace("\\", "")
                     await update.message.reply_text(plain, disable_web_page_preview=True)
 
             # Log analytics
