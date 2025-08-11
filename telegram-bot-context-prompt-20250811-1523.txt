@@ -68,7 +68,7 @@ then provide specific, actionable advice for improvement. Focus on:
 │       ├── main.py
 │       ├── middleware.py
 │       └── utils.py
-├── telegram-bot-context-prompt-20250811-1515.txt
+├── telegram-bot-context-prompt-20250811-1523.txt
 └── tests
     ├── __init__.py
     └── test_database.py
@@ -1256,7 +1256,7 @@ Switch advisors anytime with /pm or /vc
             )
 
             # Send response with MarkdownV2 + fallback
-            converted = telegramify(ai_response)
+            converted = await telegramify(ai_response)
             parts = split_into_chunks(converted, limit=3900)
             for part in parts:
                 try:
