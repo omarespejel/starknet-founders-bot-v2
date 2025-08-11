@@ -138,6 +138,81 @@ class AIAgent:
         
         return content.strip()
 
+    def _flatten_markdown_tables(self, content: str) -> str:
+        """Convert Markdown-like tables into bullet lists.
+
+        - Detect blocks of lines containing table syntax with '|'
+        - Use header row as labels when available; else join cells with ' — '
+        - Remove alignment separator lines (---, :---:)
+        """
+        lines = content.split('\n')
+        out: list[str] = []
+
+        def is_table_line(line: str) -> bool:
+            s = line.strip()
+            return ('|' in s) and (s.startswith('|') or s.count('|') >= 2)
+
+        sep_pattern = re.compile(r"^\s*\|?\s*(?::?-+:?\s*\|\s*)+(?::?-+:?)\s*\|?\s*$")
+
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            if not is_table_line(line):
+                out.append(line)
+                i += 1
+                continue
+
+            # Start of table block
+            table_block: list[str] = []
+            while i < len(lines) and is_table_line(lines[i]):
+                table_block.append(lines[i])
+                i += 1
+
+            # Parse header and rows
+            def split_cells(raw: str) -> list[str]:
+                s = raw.strip()
+                if s.startswith('|'):
+                    s = s[1:]
+                if s.endswith('|'):
+                    s = s[:-1]
+                return [c.strip() for c in s.split('|')]
+
+            header: list[str] = []
+            rows: list[list[str]] = []
+
+            # Remove separator lines and identify header
+            cleaned_lines = [l for l in table_block if not sep_pattern.match(l.strip())]
+            if cleaned_lines:
+                header = split_cells(cleaned_lines[0])
+                for r in cleaned_lines[1:]:
+                    cells = split_cells(r)
+                    rows.append(cells)
+
+            # Emit bullets
+            if rows:
+                out.append("")
+                for cells in rows:
+                    if header and len(header) == len(cells):
+                        pairs = []
+                        for h, v in zip(header, cells):
+                            h_clean = re.sub(r"\s+", " ", h).strip(': ')
+                            v_clean = re.sub(r"\s+", " ", v)
+                            if h_clean and v_clean:
+                                pairs.append(f"{h_clean}: {v_clean}")
+                            elif v_clean:
+                                pairs.append(v_clean)
+                        bullet = "- " + "; ".join(pairs)
+                    else:
+                        bullet = "- " + " — ".join(c.strip() for c in cells if c.strip())
+                    out.append(bullet)
+                out.append("")
+            else:
+                # Fallback: just output the non-separator lines joined
+                for l in cleaned_lines:
+                    out.append(l)
+
+        return "\n".join(out)
+
     def format_response(self, content: str, agent_type: str) -> str:
         """Format AI response into plain, predictable text suitable for MarkdownV2 escaping.
 
@@ -145,6 +220,9 @@ class AIAgent:
         with MarkdownV2 and handle minimal styling.
         """
         logger.debug(f"Raw content before citation parsing: {content[:500]}")
+
+        # First, flatten any markdown tables into readable lists
+        content = self._flatten_markdown_tables(content)
 
         # Clean numbered references like [1] and inline chains [1][2]
         content = self.clean_references(content)
